@@ -1,0 +1,33 @@
+# GHM Backend Setup README
+
+## Install Required Packages
+
+### Main Dependencies
+
+npm install express prisma @prisma/client swagger-ui-express swagger-jsdoc dotenv cors helmet morgan zod bcrypt jsonwebtoken multer cloudinary cookie-parser express-rate-limit compression
+
+
+---
+
+## Install Nodemon
+
+npm install -D nodemon
+```
+
+---
+
+# Prisma Commands
+
+## Generate Prisma Client
+
+npx prisma generate
+```
+
+---
+
+## Run Migration
+
+npx prisma migrate dev --name create_users_table
+
+
+
