@@ -10,7 +10,7 @@ const swaggerUi = require("swagger-ui-express");
 const swaggerSpec = require("./swagger");
 const authRoutes = require("./routes/auth.routes");
 dotenv.config();
-
+const cookieParser = require("cookie-parser");
 const app = express();
 
 // ==========================
@@ -28,7 +28,7 @@ app.use(compression());
 // Swagger Docs Route
 // ==========================
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-
+app.use(cookieParser());
 app.use("/api/auth", authRoutes);
 
 
