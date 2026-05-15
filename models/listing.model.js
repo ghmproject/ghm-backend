@@ -53,13 +53,26 @@ const updateRestaurantLocation = async (
   id,
   { latitude, longitude, image }
 ) => {
-  const data = {
-    latitude,
-    longitude,
-  };
-  if (image !== undefined && image !== null) {
+  const data = {};
+
+  if (latitude != null) {
+    data.latitude = latitude;
+  }
+
+  if (longitude != null) {
+    data.longitude = longitude;
+  }
+
+  if (image != null && image !== "") {
     data.image = image;
   }
+
+  if (!Object.keys(data).length) {
+    return await prisma.restaurant.findUnique({
+      where: { id: Number(id) },
+    });
+  }
+
   return await prisma.restaurant.update({
     where: { id: Number(id) },
     data,
@@ -73,14 +86,23 @@ const updateRestaurantLocation = async (
 const createMeal = async ({
   restaurantId,
   dishName,
+  cuisine,
   price,
+  status,
 }) => {
+  const data = {
+    restaurantId,
+    dishName,
+    cuisine,
+    price,
+  };
+
+  if (status) {
+    data.status = status;
+  }
+
   return await prisma.meal.create({
-    data: {
-      restaurantId,
-      dishName,
-      price,
-    },
+    data,
   });
 };
 
@@ -118,6 +140,59 @@ const getSingleRestaurant =
     });
   };
 
+// =======================================
+// FILTER LISTINGS
+// =======================================
+const filterListings = async ({
+  cuisine,
+  maxPrice,
+}) => {
+
+  const where = {
+    meals: {
+      some: {
+        status: "APPROVED",
+      },
+    },
+  };
+
+  // ===================================
+  // CUISINE FILTER
+  // ===================================
+  if (
+    cuisine &&
+    cuisine.toLowerCase() !== "all"
+  ) {
+    where.meals.some.cuisine = {
+      equals: cuisine,
+      mode: "insensitive",
+    };
+  }
+
+  // ===================================
+  // PRICE FILTER
+  // ===================================
+  if (maxPrice) {
+    where.meals.some.price = {
+      lte: Number(maxPrice),
+    };
+  }
+
+  return await prisma.restaurant.findMany({
+    where,
+
+    include: {
+      meals: {
+        where: {
+          status: "APPROVED",
+        },
+      },
+    },
+  });
+};
+
+
+
 module.exports = {
   findRestaurant,
   createRestaurant,
@@ -125,4 +200,5 @@ module.exports = {
   createMeal,
   getApprovedRestaurants,
   getSingleRestaurant,
+  filterListings,
 };

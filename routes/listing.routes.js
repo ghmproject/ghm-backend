@@ -4,6 +4,7 @@ const {
   createSubmission,
   getListings,
   getListing,
+  filterListingController,
 } = require("../controllers/listing.controller");
 
 const upload = require(
@@ -19,6 +20,7 @@ const router = express.Router();
  *   description: Restaurant listing APIs
  */
 
+
 /**
  * @swagger
  * components:
@@ -31,6 +33,7 @@ const router = express.Router();
  *         - restaurantName
  *         - suburb
  *         - dishName
+ *         - cuisine
  *         - price
  *         - latitude
  *         - longitude
@@ -49,18 +52,21 @@ const router = express.Router();
  *           type: string
  *           example: Pork Banh Mi
  *
+ *         cuisine:
+ *           type: string
+ *           description: Meal cuisine/category
+ *           example: Vietnamese
+ *
  *         price:
  *           type: number
  *           example: 8
  *
  *         latitude:
  *           type: number
- *           description: User device latitude (WGS84), stored on the restaurant for map display
  *           example: -27.4698
  *
  *         longitude:
  *           type: number
- *           description: User device longitude (WGS84), stored on the restaurant for map display
  *           example: 153.0251
  *
  *         image:
@@ -89,6 +95,10 @@ const router = express.Router();
  *           type: string
  *           example: Pork Banh Mi
  *
+ *         cuisine:
+ *           type: string
+ *           example: Vietnamese
+ *
  *         price:
  *           type: number
  *           example: 8
@@ -109,13 +119,11 @@ const router = express.Router();
  *         latitude:
  *           type: number
  *           nullable: true
- *           description: Map pin latitude (from submission)
  *           example: -27.4698
  *
  *         longitude:
  *           type: number
  *           nullable: true
- *           description: Map pin longitude (from submission)
  *           example: 153.0251
  */
 
@@ -125,7 +133,7 @@ const router = express.Router();
  * /api/listings:
  *   post:
  *     summary: Create restaurant submission
- *     description: Submit a new cheap food listing for moderation approval. Sends the submitter latitude/longitude; they are saved on the restaurant record for map display.
+ *     description: Submit a cheap food listing for moderation approval
  *     tags:
  *       - Listings
  *
@@ -149,21 +157,18 @@ const router = express.Router();
  */
 
 
-// CREATE SUBMISSION
 router.post(
   "/",
-
   upload.single("image"),
-
   createSubmission
 );
+
 
 /**
  * @swagger
  * /api/listings:
  *   get:
  *     summary: Get all approved listings
- *     description: Returns all approved restaurant listings
  *     tags:
  *       - Listings
  *
@@ -171,32 +176,87 @@ router.post(
  *       200:
  *         description: Listings fetched successfully
  *
+ *       500:
+ *         description: Internal server error
+ */
+
+
+router.get(
+  "/",
+  getListings
+);
+
+/**
+ * @swagger
+ * /api/listings/filter:
+ *   get:
+ *     summary: Filter restaurant listings
+ *     description: Filter listings by cuisine and maximum price
+ *     tags:
+ *       - Listings
+ *
+ *     parameters:
+ *
+ *       - in: query
+ *         name: cuisine
+ *         required: false
+ *         schema:
+ *           type: string
+ *         example: Korean
+ *
+ *       - in: query
+ *         name: maxPrice
+ *         required: false
+ *         schema:
+ *           type: number
+ *         example: 12
+ *
+ *     responses:
+ *       200:
+ *         description: Filtered listings fetched successfully
+ *
  *         content:
  *           application/json:
- *             schema:
- *               type: array
- *
- *               items:
- *                 $ref: '#/components/schemas/ListingResponse'
+ *             example:
+ *               {
+ *                 "success": true,
+ *                 "count": 1,
+ *                 "data": [
+ *                   {
+ *                     "id": 1,
+ *                     "name": "Momo House",
+ *                     "suburb": "South Bank",
+ *                     "latitude": -27.4812,
+ *                     "longitude": 153.0234,
+ *                     "image": "https://example.com/momo.jpg",
+ *                     "meals": [
+ *                       {
+ *                         "id": 2,
+ *                         "dishName": "Bibimbap",
+ *                         "cuisine": "Korean",
+ *                         "price": 10,
+ *                         "status": "APPROVED"
+ *                       }
+ *                     ]
+ *                   }
+ *                 ]
+ *               }
  *
  *       500:
  *         description: Internal server error
  */
 
 
-// GET ALL APPROVED LISTINGS
+// FILTER LISTINGS
 router.get(
-  "/",
-  getListings
+  "/filter",
+  filterListingController
 );
-
-
 /**
  * @swagger
  * /api/listings/{id}:
  *   get:
  *     summary: Get single listing
- *     description: Fetch single restaurant listing by ID
  *     tags:
  *       - Listings
  *
@@ -214,11 +274,6 @@ router.get(
  *       200:
  *         description: Listing fetched successfully
  *
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ListingResponse'
- *
  *       404:
  *         description: Listing not found
  *
@@ -227,11 +282,16 @@ router.get(
  */
 
 
-// GET SINGLE LISTING
 router.get(
   "/:id",
-
   getListing
 );
 
+
+
+
+
+
+
 module.exports = router;
+

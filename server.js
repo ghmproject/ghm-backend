@@ -12,6 +12,8 @@ const authRoutes = require("./routes/auth.routes");
 const listingRoutes = require("./routes/listing.routes");
 const adminRoutes = require("./routes/admin.routes");
 const nearbyListingRoutes = require("./routes/nearbyListing.routes");
+const reportRoutes = require("./routes/report.routes");
+
 dotenv.config();
 const cookieParser = require("cookie-parser");
 const app = express();
@@ -36,7 +38,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/listings", listingRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/listingNearby", nearbyListingRoutes);
-
+app.use( "/api/reports",reportRoutes);
 // ==========================
 // 404 Handler
 // ==========================

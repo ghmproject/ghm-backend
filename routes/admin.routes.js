@@ -1,9 +1,11 @@
 const express = require("express");
+const multer = require("multer");
 
 const {
   getPendingRequests,
   approveRequest,
   rejectRequest,
+  importCsvController,
 } = require("../controllers/admin.controller");
 
 const authMiddleware = require(
@@ -15,6 +17,43 @@ const adminMiddleware = require(
 );
 
 const router = express.Router();
+
+// ======================================
+// CSV UPLOAD (multer)
+// ======================================
+const csvUpload = multer({
+  storage: multer.memoryStorage(),
+
+  limits: {
+    fileSize: 5 * 1024 * 1024,
+  },
+
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = [
+      "text/csv",
+      "application/csv",
+      "application/vnd.ms-excel",
+      "text/plain",
+    ];
+
+    const isCsvMime = allowedTypes.includes(
+      file.mimetype
+    );
+
+    const isCsvExtension = file.originalname
+      .toLowerCase()
+      .endsWith(".csv");
+
+    if (isCsvMime || isCsvExtension) {
+      cb(null, true);
+    } else {
+      cb(
+        new Error("Only CSV files are allowed"),
+        false
+      );
+    }
+  },
+});
 
 /**
  * @swagger
@@ -257,6 +296,129 @@ router.patch(
   adminMiddleware,
 
   rejectRequest
+);
+
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     CsvImportResponse:
+ *       type: object
+ *       properties:
+ *         success:
+ *           type: boolean
+ *           example: true
+ *         message:
+ *           type: string
+ *           example: CSV imported successfully
+ *         restaurantsCreated:
+ *           type: integer
+ *           example: 5
+ *         mealsCreated:
+ *           type: integer
+ *           example: 20
+ *         skippedRows:
+ *           type: integer
+ *           example: 2
+ */
+
+
+/**
+ * @swagger
+ * /api/admin/import-csv:
+ *   post:
+ *     summary: Import restaurants and meals from CSV
+ *     description: |
+ *       Admin-only endpoint. Uploads a CSV file and imports data into
+ *       existing Restaurant and Meal tables.
+ *
+ *       For each row:
+ *       - Finds or creates a restaurant by name + suburb
+ *       - Creates a meal linked to that restaurant with APPROVED status
+ *
+ *       Required CSV columns:
+ *       restaurantName, suburb, dishName, cuisine, price, latitude, longitude, image
+ *     tags:
+ *       - Admin
+ *
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - file
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *                 description: CSV file with restaurant and meal data
+ *
+ *     responses:
+ *       200:
+ *         description: CSV imported successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/CsvImportResponse'
+ *             example:
+ *               success: true
+ *               message: CSV imported successfully
+ *               restaurantsCreated: 5
+ *               mealsCreated: 20
+ *               skippedRows: 2
+ *
+ *       400:
+ *         description: Invalid or missing CSV file
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: false
+ *               message: CSV file is required (field file)
+ *
+ *       401:
+ *         description: Unauthorized
+ *
+ *       403:
+ *         description: Admin only
+ *
+ *       500:
+ *         description: Internal server error
+ */
+
+
+// ======================================
+// IMPORT CSV
+// ======================================
+router.post(
+  "/import-csv",
+
+  authMiddleware,
+
+  adminMiddleware,
+
+  (req, res, next) => {
+    csvUpload.single("file")(
+      req,
+      res,
+      (err) => {
+        if (err) {
+          return res.status(400).json({
+            success: false,
+            message:
+              err.message ||
+              "File upload failed",
+          });
+        }
+
+        next();
+      }
+    );
+  },
+
+  importCsvController
 );
 
 module.exports = router;

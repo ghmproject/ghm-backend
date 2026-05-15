@@ -15,6 +15,7 @@ const {
   createMeal,
   getApprovedRestaurants,
   getSingleRestaurant,
+  filterListings,
 } = require("../models/listing.model");
 
 // =======================================
@@ -26,12 +27,7 @@ const createSubmission = async (
 ) => {
   try {
     const {
-      restaurantName,
-      suburb,
-      dishName,
-      price,
-      latitude,
-      longitude,
+      restaurantName, suburb, dishName, cuisine, price, latitude, longitude,
     } = req.body;
 
     // Validation
@@ -142,11 +138,7 @@ const createSubmission = async (
     // CREATE MEAL
     // ===================================
     const meal = await createMeal({
-      restaurantId: restaurant.id,
-
-      dishName,
-
-      price: priceNum,
+      restaurantId: restaurant.id, dishName, cuisine, price: priceNum,
     });
 
     return res.status(201).json({
@@ -229,9 +221,45 @@ const getListing = async (
     });
   }
 };
+// =======================================
+// FILTER LISTINGS
+// =======================================
+const filterListingController =
+  async (req, res) => {
+    try {
+
+      const {
+        cuisine,
+        maxPrice,
+      } = req.query;
+
+      const listings =
+        await filterListings({
+          cuisine,
+          maxPrice,
+        });
+
+      return res.status(200).json({
+        success: true,
+        count: listings.length,
+        data: listings,
+      });
+
+    } catch (error) {
+
+      console.log(error);
+
+      return res.status(500).json({
+        success: false,
+        message: "Internal server error",
+      });
+    }
+  };
+
 
 module.exports = {
   createSubmission,
   getListings,
   getListing,
+  filterListingController,
 };
