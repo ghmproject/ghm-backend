@@ -12,6 +12,12 @@ enum Role {
   USER
 }
 
+enum ListingStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model User {
   id         Int      @id @default(autoincrement())
   name       String?
@@ -21,4 +27,42 @@ model User {
   createdAt  DateTime @default(now())
 
   @@map("users")
+}
+
+model Restaurant {
+  id        Int      @id @default(autoincrement())
+
+  name      String
+
+  suburb    String
+  
+  latitude  Float?
+
+  longitude Float?
+
+  image     String?
+
+  createdAt DateTime @default(now())
+
+  meals     Meal[]
+
+  @@map("restaurants")
+}
+
+model Meal {
+  id           Int      @id @default(autoincrement())
+
+  restaurantId Int
+
+  dishName     String
+
+  price        Float
+
+  status       ListingStatus @default(PENDING)
+
+  createdAt    DateTime @default(now())
+
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+
+  @@map("meals")
 }

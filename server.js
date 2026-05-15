@@ -9,6 +9,9 @@ const swaggerUi = require("swagger-ui-express");
 
 const swaggerSpec = require("./swagger");
 const authRoutes = require("./routes/auth.routes");
+const listingRoutes = require("./routes/listing.routes");
+const adminRoutes = require("./routes/admin.routes");
+const nearbyListingRoutes = require("./routes/nearbyListing.routes");
 dotenv.config();
 const cookieParser = require("cookie-parser");
 const app = express();
@@ -30,8 +33,9 @@ app.use(compression());
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use(cookieParser());
 app.use("/api/auth", authRoutes);
-
-
+app.use("/api/listings", listingRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/listingNearby", nearbyListingRoutes);
 
 // ==========================
 // 404 Handler
