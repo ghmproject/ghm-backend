@@ -30,57 +30,106 @@ model User {
 }
 
 model Restaurant {
-  id        Int      @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
-  name      String
+  name String
 
-  suburb    String
-  
-  latitude  Float?
+  suburb String
+
+  latitude Float?
 
   longitude Float?
 
-  image     String?
+  image String?
 
   createdAt DateTime @default(now())
 
-  meals     Meal[]
+  meals Meal[]
 
   @@map("restaurants")
 }
 
 model Meal {
-  id           Int      @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
   restaurantId Int
 
-  dishName     String
+  dishName String
 
-  cuisine      String?
+  cuisine String?
 
-  price        Float
+  price Float
 
-  status       ListingStatus @default(PENDING)
-
-  createdAt    DateTime @default(now())
-
-  restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
-  
-  reports      Report[]
-
-  @@map("meals")
-}
-model Report {
-
-  id        Int      @id @default(autoincrement())
-
-  mealId    Int
-
-  reason    String
+  status ListingStatus @default(PENDING)
 
   createdAt DateTime @default(now())
 
-  meal      Meal @relation(fields: [mealId], references: [id])
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id])
+
+  reports Report[]
+
+  votes Vote[]
+
+  // HOT DEAL RELATION
+  hotDeals HotDeal[]
+
+  @@map("meals")
+}
+
+model Report {
+  id Int @id @default(autoincrement())
+
+  mealId Int
+
+  reason String
+
+  createdAt DateTime @default(now())
+
+  meal Meal @relation(fields: [mealId], references: [id])
 
   @@map("reports")
+}
+
+enum VoteType {
+  UP
+  DOWN
+}
+
+model Vote {
+  id Int @id @default(autoincrement())
+
+  mealId Int
+
+  meal Meal @relation(fields: [mealId], references: [id])
+
+  voteType VoteType
+
+  deviceId String?
+
+  ipAddress String?
+
+  createdAt DateTime @default(now())
+
+  @@unique([mealId, deviceId])
+  @@map("votes")
+}
+
+model HotDeal {
+  id Int @id @default(autoincrement())
+
+  mealId Int
+
+  meal Meal @relation(fields: [mealId], references: [id])
+
+  startDateTime DateTime
+
+  endDateTime DateTime
+
+  description String?
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+
+  @@map("hot_deals")
 }

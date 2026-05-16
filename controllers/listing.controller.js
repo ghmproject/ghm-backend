@@ -6,17 +6,26 @@ const streamifier = require(
   "streamifier"
 );
 
-const { parseCoordinates } = require("../utils/parseCoordinates");
+const {
+  parseCoordinates,
+} = require(
+  "../utils/parseCoordinates"
+);
 
 const {
   findRestaurant,
   createRestaurant,
   updateRestaurantLocation,
   createMeal,
+  createHotDeal,
   getApprovedRestaurants,
   getSingleRestaurant,
   filterListings,
-} = require("../models/listing.model");
+  getActiveHotDeals,
+} = require(
+  "../models/listing.model"
+);
+
 
 // =======================================
 // CREATE SUBMISSION
@@ -25,12 +34,31 @@ const createSubmission = async (
   req,
   res
 ) => {
+
   try {
+
     const {
-      restaurantName, suburb, dishName, cuisine, price, latitude, longitude,
+
+      restaurantName,
+      suburb,
+      dishName,
+      cuisine,
+      price,
+      latitude,
+      longitude,
+
+      // HOT DEALS
+      isHotDeal,
+      hotDealStartDateTime,
+      hotDealEndDateTime,
+      hotDealDescription,
+
     } = req.body;
 
-    // Validation
+
+    // ===================================
+    // BASIC VALIDATION
+    // ===================================
     if (
       !restaurantName ||
       !suburb ||
@@ -39,28 +67,100 @@ const createSubmission = async (
       price === null ||
       price === ""
     ) {
+
       return res.status(400).json({
         success: false,
+
         message:
-          "restaurantName, suburb, dishName, price, latitude, and longitude are required",
+          "restaurantName, suburb, dishName and price are required",
       });
     }
 
-    const coords = parseCoordinates(latitude, longitude);
+
+    // ===================================
+    // LOCATION VALIDATION
+    // ===================================
+    const coords = parseCoordinates(
+      latitude,
+      longitude
+    );
+
     if (!coords.ok) {
+
       return res.status(coords.status).json({
         success: false,
-        message: coords.message,
+
+        message:
+          coords.message,
       });
     }
 
+
+    // ===================================
+    // PRICE VALIDATION
+    // ===================================
     const priceNum = Number(price);
-    if (Number.isNaN(priceNum) || priceNum < 0) {
+
+    if (
+      Number.isNaN(priceNum) ||
+      priceNum < 0
+    ) {
+
       return res.status(400).json({
         success: false,
-        message: "price must be a valid non-negative number",
+
+        message:
+          "price must be a valid non-negative number",
       });
     }
+
+
+    // ===================================
+    // HOT DEAL VALIDATION
+    // ===================================
+    const hotDealEnabled =
+      isHotDeal === true ||
+      isHotDeal === "true";
+
+
+    if (hotDealEnabled) {
+
+      if (
+        !hotDealStartDateTime ||
+        !hotDealEndDateTime
+      ) {
+
+        return res.status(400).json({
+          success: false,
+
+          message:
+            "hotDealStartDateTime and hotDealEndDateTime are required",
+        });
+      }
+
+
+      const start =
+        new Date(
+          hotDealStartDateTime
+        );
+
+      const end =
+        new Date(
+          hotDealEndDateTime
+        );
+
+
+      if (start >= end) {
+
+        return res.status(400).json({
+          success: false,
+
+          message:
+            "End datetime must be after start datetime",
+        });
+      }
+    }
+
 
     // ===================================
     // IMAGE UPLOAD
@@ -68,16 +168,21 @@ const createSubmission = async (
     let image = null;
 
     if (req.file) {
+
       const streamUpload = () => {
+
         return new Promise(
           (resolve, reject) => {
+
             const stream =
               cloudinary.uploader.upload_stream(
+
                 {
                   folder: "GHMProject",
                 },
 
                 (error, result) => {
+
                   if (result) {
                     resolve(result);
                   } else {
@@ -98,11 +203,13 @@ const createSubmission = async (
       const result =
         await streamUpload();
 
-      image = result.secure_url;
+      image =
+        result.secure_url;
     }
 
+
     // ===================================
-    // CHECK EXISTING RESTAURANT
+    // FIND EXISTING RESTAURANT
     // ===================================
     let restaurant =
       await findRestaurant(
@@ -110,122 +217,210 @@ const createSubmission = async (
         suburb
       );
 
+
     // ===================================
-    // CREATE RESTAURANT IF NOT EXISTS
+    // CREATE RESTAURANT
     // ===================================
     if (!restaurant) {
+
       restaurant =
         await createRestaurant({
-          name: restaurantName,
+
+          name:
+            restaurantName,
+
           suburb,
+
           image,
-          latitude: coords.lat,
-          longitude: coords.lng,
+
+          latitude:
+            coords.lat,
+
+          longitude:
+            coords.lng,
         });
+
     } else {
+
       restaurant =
         await updateRestaurantLocation(
+
           restaurant.id,
+
           {
-            latitude: coords.lat,
-            longitude: coords.lng,
+            latitude:
+              coords.lat,
+
+            longitude:
+              coords.lng,
+
             image,
           }
         );
     }
 
+
     // ===================================
     // CREATE MEAL
     // ===================================
-    const meal = await createMeal({
-      restaurantId: restaurant.id, dishName, cuisine, price: priceNum,
-    });
+    const meal =
+      await createMeal({
+
+        restaurantId:
+          restaurant.id,
+
+        dishName,
+
+        cuisine,
+
+        price:
+          priceNum,
+      });
+
+
+    // ===================================
+    // CREATE HOT DEAL
+    // ===================================
+    if (hotDealEnabled) {
+
+      await createHotDeal({
+
+        mealId:
+          meal.id,
+
+        startDateTime:
+          hotDealStartDateTime,
+
+        endDateTime:
+          hotDealEndDateTime,
+
+        description:
+          hotDealDescription,
+      });
+    }
+
 
     return res.status(201).json({
+
       success: true,
 
       message:
-        "Submission sent for moderation",
+        hotDealEnabled
+          ? "Hot deal submitted successfully"
+          : "Submission sent for moderation",
 
       restaurant,
+
       meal,
     });
+
   } catch (error) {
+
     console.log(error);
 
     return res.status(500).json({
+
       success: false,
-      message: "Internal server error",
+
+      message:
+        "Internal server error",
     });
   }
 };
 
 
 // =======================================
-// GET RESTAURANTS
+// GET ALL LISTINGS
 // =======================================
 const getListings = async (
   req,
   res
 ) => {
+
   try {
+
     const restaurants =
       await getApprovedRestaurants();
 
     return res.status(200).json({
+
       success: true,
-      data: restaurants,
+
+      data:
+        restaurants,
     });
+
   } catch (error) {
+
     console.log(error);
 
     return res.status(500).json({
+
       success: false,
-      message: "Internal server error",
+
+      message:
+        "Internal server error",
     });
   }
 };
 
 
 // =======================================
-// GET SINGLE RESTAURANT
+// GET SINGLE LISTING
 // =======================================
 const getListing = async (
   req,
   res
 ) => {
+
   try {
-    const { id } = req.params;
+
+    const { id } =
+      req.params;
 
     const restaurant =
       await getSingleRestaurant(id);
 
     if (!restaurant) {
+
       return res.status(404).json({
+
         success: false,
+
         message:
           "Restaurant not found",
       });
     }
 
     return res.status(200).json({
+
       success: true,
-      data: restaurant,
+
+      data:
+        restaurant,
     });
+
   } catch (error) {
+
     console.log(error);
 
     return res.status(500).json({
+
       success: false,
-      message: "Internal server error",
+
+      message:
+        "Internal server error",
     });
   }
 };
+
+
 // =======================================
 // FILTER LISTINGS
 // =======================================
 const filterListingController =
   async (req, res) => {
+
     try {
 
       const {
@@ -240,9 +435,14 @@ const filterListingController =
         });
 
       return res.status(200).json({
+
         success: true,
-        count: listings.length,
-        data: listings,
+
+        count:
+          listings.length,
+
+        data:
+          listings,
       });
 
     } catch (error) {
@@ -250,8 +450,48 @@ const filterListingController =
       console.log(error);
 
       return res.status(500).json({
+
         success: false,
-        message: "Internal server error",
+
+        message:
+          "Internal server error",
+      });
+    }
+  };
+
+
+// =======================================
+// GET ACTIVE HOT DEALS
+// =======================================
+const getHotDealsController =
+  async (req, res) => {
+
+    try {
+
+      const deals =
+        await getActiveHotDeals();
+
+      return res.status(200).json({
+
+        success: true,
+
+        count:
+          deals.length,
+
+        data:
+          deals,
+      });
+
+    } catch (error) {
+
+      console.log(error);
+
+      return res.status(500).json({
+
+        success: false,
+
+        message:
+          "Internal server error",
       });
     }
   };
@@ -262,4 +502,5 @@ module.exports = {
   getListings,
   getListing,
   filterListingController,
+  getHotDealsController,
 };

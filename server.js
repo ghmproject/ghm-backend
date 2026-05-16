@@ -13,6 +13,7 @@ const listingRoutes = require("./routes/listing.routes");
 const adminRoutes = require("./routes/admin.routes");
 const nearbyListingRoutes = require("./routes/nearbyListing.routes");
 const reportRoutes = require("./routes/report.routes");
+const voteRoutes = require("./routes/vote.routes");
 
 dotenv.config();
 const cookieParser = require("cookie-parser");
@@ -39,6 +40,7 @@ app.use("/api/listings", listingRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/listingNearby", nearbyListingRoutes);
 app.use( "/api/reports",reportRoutes);
+app.use("/api/votes", voteRoutes);
 // ==========================
 // 404 Handler
 // ==========================

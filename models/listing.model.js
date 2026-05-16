@@ -8,8 +8,10 @@ const findRestaurant = async (
   name,
   suburb
 ) => {
+
   return await prisma.restaurant.findFirst({
     where: {
+
       name: {
         equals: name,
         mode: "insensitive",
@@ -34,12 +36,18 @@ const createRestaurant = async ({
   latitude,
   longitude,
 }) => {
+
   return await prisma.restaurant.create({
     data: {
+
       name,
+
       suburb,
+
       image,
+
       latitude,
+
       longitude,
     },
   });
@@ -47,12 +55,13 @@ const createRestaurant = async ({
 
 
 // =======================================
-// UPDATE RESTAURANT LOCATION (AND IMAGE)
+// UPDATE RESTAURANT LOCATION
 // =======================================
 const updateRestaurantLocation = async (
   id,
   { latitude, longitude, image }
 ) => {
+
   const data = {};
 
   if (latitude != null) {
@@ -63,18 +72,28 @@ const updateRestaurantLocation = async (
     data.longitude = longitude;
   }
 
-  if (image != null && image !== "") {
+  if (
+    image != null &&
+    image !== ""
+  ) {
     data.image = image;
   }
 
   if (!Object.keys(data).length) {
+
     return await prisma.restaurant.findUnique({
-      where: { id: Number(id) },
+      where: {
+        id: Number(id),
+      },
     });
   }
 
   return await prisma.restaurant.update({
-    where: { id: Number(id) },
+
+    where: {
+      id: Number(id),
+    },
+
     data,
   });
 };
@@ -84,25 +103,71 @@ const updateRestaurantLocation = async (
 // CREATE MEAL
 // =======================================
 const createMeal = async ({
+
   restaurantId,
+
   dishName,
+
   cuisine,
+
   price,
+
   status,
+
 }) => {
+
   const data = {
+
     restaurantId,
+
     dishName,
+
     cuisine,
+
     price,
   };
+
 
   if (status) {
     data.status = status;
   }
 
+
   return await prisma.meal.create({
     data,
+  });
+};
+
+
+// =======================================
+// CREATE HOT DEAL
+// =======================================
+const createHotDeal = async ({
+
+  mealId,
+
+  startDateTime,
+
+  endDateTime,
+
+  description,
+
+}) => {
+
+  return await prisma.hotDeal.create({
+
+    data: {
+
+      mealId,
+
+      startDateTime:
+        new Date(startDateTime),
+
+      endDateTime:
+        new Date(endDateTime),
+
+      description,
+    },
   });
 };
 
@@ -112,11 +177,19 @@ const createMeal = async ({
 // =======================================
 const getApprovedRestaurants =
   async () => {
+
     return await prisma.restaurant.findMany({
+
       include: {
+
         meals: {
+
           where: {
             status: "APPROVED",
+          },
+
+          include: {
+            hotDeals: true,
           },
         },
       },
@@ -129,16 +202,25 @@ const getApprovedRestaurants =
 // =======================================
 const getSingleRestaurant =
   async (id) => {
+
     return await prisma.restaurant.findUnique({
+
       where: {
         id: Number(id),
       },
 
       include: {
-        meals: true,
+
+        meals: {
+
+          include: {
+            hotDeals: true,
+          },
+        },
       },
     });
   };
+
 
 // =======================================
 // FILTER LISTINGS
@@ -149,42 +231,55 @@ const filterListings = async ({
 }) => {
 
   const where = {
+
     meals: {
+
       some: {
+
         status: "APPROVED",
       },
     },
   };
 
-  // ===================================
+
   // CUISINE FILTER
-  // ===================================
   if (
     cuisine &&
     cuisine.toLowerCase() !== "all"
   ) {
+
     where.meals.some.cuisine = {
+
       equals: cuisine,
+
       mode: "insensitive",
     };
   }
 
-  // ===================================
+
   // PRICE FILTER
-  // ===================================
   if (maxPrice) {
+
     where.meals.some.price = {
       lte: Number(maxPrice),
     };
   }
 
+
   return await prisma.restaurant.findMany({
+
     where,
 
     include: {
+
       meals: {
+
         where: {
           status: "APPROVED",
+        },
+
+        include: {
+          hotDeals: true,
         },
       },
     },
@@ -192,13 +287,54 @@ const filterListings = async ({
 };
 
 
+// =======================================
+// GET ACTIVE HOT DEALS
+// =======================================
+const getActiveHotDeals =
+  async () => {
+
+    const now = new Date();
+
+    return await prisma.hotDeal.findMany({
+
+      where: {
+
+        isActive: true,
+
+        startDateTime: {
+          lte: now,
+        },
+
+        endDateTime: {
+          gte: now,
+        },
+      },
+
+      include: {
+
+        meal: {
+
+          include: {
+            restaurant: true,
+          },
+        },
+      },
+
+      orderBy: {
+        endDateTime: "asc",
+      },
+    });
+  };
+
 
 module.exports = {
   findRestaurant,
   createRestaurant,
   updateRestaurantLocation,
   createMeal,
+  createHotDeal,
   getApprovedRestaurants,
   getSingleRestaurant,
   filterListings,
+  getActiveHotDeals,
 };
