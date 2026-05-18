@@ -6,6 +6,9 @@ const {
   approveRequest,
   rejectRequest,
   importCsvController,
+  getReportedListings,
+  restoreListing,
+  rejectReportedListing,
 } = require("../controllers/admin.controller");
 
 const authMiddleware = require(
@@ -120,6 +123,15 @@ const csvUpload = multer({
  *           type: string
  *           example: PENDING
  *
+ *         isHidden:
+ *           type: boolean
+ *           example: false
+ *
+ *         hiddenAt:
+ *           type: string
+ *           format: date-time
+ *           nullable: true
+ *
  *         createdAt:
  *           type: string
  *           format: date-time
@@ -190,6 +202,150 @@ router.get(
   adminMiddleware,
 
   getPendingRequests
+);
+
+
+/**
+ * @swagger
+ * /api/admin/reported-listings:
+ *   get:
+ *     summary: Get hidden or reported meals
+ *     description: |
+ *       Returns meals that are auto-hidden (3+ reports) or have at least one report,
+ *       with restaurant, reports, and meal details for admin review.
+ *     tags:
+ *       - Admin
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Reported or hidden listings fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 count:
+ *                   type: integer
+ *                   example: 2
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Admin only
+ *       500:
+ *         description: Internal server error
+ */
+
+
+router.get(
+  "/reported-listings",
+
+  authMiddleware,
+
+  adminMiddleware,
+
+  getReportedListings
+);
+
+
+/**
+ * @swagger
+ * /api/admin/restore-listing/{mealId}:
+ *   patch:
+ *     summary: Restore a hidden listing
+ *     description: Clears auto-hide flags after admin review (isHidden false, hiddenAt null).
+ *     tags:
+ *       - Admin
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: mealId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         example: 12
+ *     responses:
+ *       200:
+ *         description: Listing restored successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ModerationResponse'
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Admin only
+ *       404:
+ *         description: Meal not found
+ *       500:
+ *         description: Internal server error
+ */
+
+
+router.patch(
+  "/restore-listing/:mealId",
+
+  authMiddleware,
+
+  adminMiddleware,
+
+  restoreListing
+);
+
+
+/**
+ * @swagger
+ * /api/admin/reject-listing/{mealId}:
+ *   patch:
+ *     summary: Soft-reject a reported listing
+ *     description: |
+ *       Sets meal status to REJECTED and clears hide flags so it no longer appears in public listings.
+ *       Does not delete the meal row (reports and history remain).
+ *     tags:
+ *       - Admin
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: mealId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         example: 12
+ *     responses:
+ *       200:
+ *         description: Listing rejected successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ModerationResponse'
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Admin only
+ *       404:
+ *         description: Meal not found
+ *       500:
+ *         description: Internal server error
+ */
+
+
+router.patch(
+  "/reject-listing/:mealId",
+
+  authMiddleware,
+
+  adminMiddleware,
+
+  rejectReportedListing
 );
 
 

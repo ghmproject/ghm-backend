@@ -8,6 +8,12 @@ const {
 } = require("../models/admin.model");
 
 const {
+  getReportedOrHiddenMeals,
+  restoreMealVisibility,
+  softRejectReportedListing,
+} = require("../models/adminModeration.model");
+
+const {
   findRestaurant,
   createRestaurant,
   updateRestaurantLocation,
@@ -375,9 +381,107 @@ const importCsvController =
     }
   };
 
+// ======================================
+// REPORTED / HIDDEN LISTINGS
+// ======================================
+const getReportedListings = async (req, res) => {
+  try {
+    const meals = await getReportedOrHiddenMeals();
+
+    return res.status(200).json({
+      success: true,
+
+      count: meals.length,
+
+      data: meals,
+    });
+  } catch (error) {
+    console.log(error);
+
+    return res.status(500).json({
+      success: false,
+
+      message: "Internal server error",
+    });
+  }
+};
+
+// ======================================
+// RESTORE LISTING
+// ======================================
+const restoreListing = async (req, res) => {
+  try {
+    const { mealId } = req.params;
+
+    const meal = await restoreMealVisibility(mealId);
+
+    return res.status(200).json({
+      success: true,
+
+      message: "Listing restored successfully",
+
+      data: meal,
+    });
+  } catch (error) {
+    console.log(error);
+
+    if (error.code === "P2025") {
+      return res.status(404).json({
+        success: false,
+
+        message: "Meal not found",
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+
+      message: "Internal server error",
+    });
+  }
+};
+
+// ======================================
+// SOFT-REJECT REPORTED LISTING
+// ======================================
+const rejectReportedListing = async (req, res) => {
+  try {
+    const { mealId } = req.params;
+
+    const meal = await softRejectReportedListing(mealId);
+
+    return res.status(200).json({
+      success: true,
+
+      message: "Listing rejected successfully",
+
+      data: meal,
+    });
+  } catch (error) {
+    console.log(error);
+
+    if (error.code === "P2025") {
+      return res.status(404).json({
+        success: false,
+
+        message: "Meal not found",
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+
+      message: "Internal server error",
+    });
+  }
+};
+
 module.exports = {
   getPendingRequests,
   approveRequest,
   rejectRequest,
   importCsvController,
+  getReportedListings,
+  restoreListing,
+  rejectReportedListing,
 };

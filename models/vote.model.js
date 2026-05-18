@@ -1,5 +1,25 @@
 const prisma = require("../config/prisma");
 
+const {
+  publicApprovedMealWhere,
+} = require("../utils/mealPublicFilter");
+
+
+// =====================================
+// FIND APPROVED, VISIBLE MEAL (PUBLIC)
+// =====================================
+const findPublicApprovedVisibleMeal = async (
+  mealId
+) => {
+  return await prisma.meal.findFirst({
+    where: {
+      id: Number(mealId),
+
+      ...publicApprovedMealWhere,
+    },
+  });
+};
+
 
 // =====================================
 // FIND EXISTING VOTE
@@ -96,6 +116,7 @@ const getMealVotes = async (
 };
 
 module.exports = {
+  findPublicApprovedVisibleMeal,
   findExistingVote,
   createVote,
   getMealVotes,

@@ -1,4 +1,5 @@
 const {
+    findPublicApprovedVisibleMeal,
     findExistingVote,
     createVote,
     getMealVotes,
@@ -17,6 +18,21 @@ const {
   
       const { mealId } =
         req.params;
+  
+      const visibleMeal =
+        await findPublicApprovedVisibleMeal(
+          mealId
+        );
+  
+      if (!visibleMeal) {
+  
+        return res.status(404).json({
+          success: false,
+  
+          message:
+            "Meal not found",
+        });
+      }
   
       const {
         voteType,
@@ -141,6 +157,21 @@ const {
   
       const { mealId } =
         req.params;
+  
+      const visibleMeal =
+        await findPublicApprovedVisibleMeal(
+          mealId
+        );
+  
+      if (!visibleMeal) {
+  
+        return res.status(404).json({
+          success: false,
+  
+          message:
+            "Meal not found",
+        });
+      }
   
       const votes =
         await getMealVotes(

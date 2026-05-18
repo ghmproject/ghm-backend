@@ -1,5 +1,9 @@
 const prisma = require("../config/prisma");
 
+const {
+  publicApprovedMealWhere,
+} = require("../utils/mealPublicFilter");
+
 /**
  * Approved meals whose restaurant has map coordinates.
  * One row per meal (same restaurant may appear multiple times).
@@ -13,11 +17,11 @@ const findApprovedMealsWithRestaurantCoords = async () => {
         { latitude: { gte: -90, lte: 90 } },
         { longitude: { gte: -180, lte: 180 } },
       ],
-      meals: { some: { status: "APPROVED" } },
+      meals: { some: publicApprovedMealWhere },
     },
     include: {
       meals: {
-        where: { status: "APPROVED" },
+        where: publicApprovedMealWhere,
       },
     },
   });

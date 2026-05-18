@@ -29,7 +29,9 @@ const router = express.Router();
  * /api/reports:
  *   post:
  *     summary: Report a listing
- *     description: Users can report outdated or incorrect listing information
+ *     description: |
+ *       Users can report outdated or incorrect listing information.
+ *       After three reports for the same meal, the listing is automatically hidden from public APIs until an admin restores it.
  *     tags:
  *       - Reports
  *
@@ -58,9 +60,29 @@ const router = express.Router();
  *     responses:
  *       201:
  *         description: Listing reported successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                 reportCount:
+ *                   type: integer
+ *                   description: Total reports for this meal after this submission
+ *                 mealAutoHidden:
+ *                   type: boolean
+ *                   description: True when this report reached the threshold and the meal was auto-hidden
  *
  *       400:
  *         description: Validation error
+ *
+ *       404:
+ *         description: Meal not found
  *
  *       500:
  *         description: Internal server error

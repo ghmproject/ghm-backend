@@ -21,6 +21,7 @@ const router = express.Router();
  * /api/votes/{mealId}:
  *   post:
  *     summary: Vote for a meal
+ *     description: Only allowed for approved, non-hidden (public) meals.
  *     tags: [Votes]
  *
  *     parameters:
@@ -61,6 +62,9 @@ const router = express.Router();
  *       409:
  *         description: Already voted
  *
+ *       404:
+ *         description: Meal not found or not publicly visible
+ *
  *       500:
  *         description: Internal server error
  */
@@ -77,6 +81,7 @@ router.post(
  * /api/votes/{mealId}/total:
  *   get:
  *     summary: Get meal votes
+ *     description: Returns vote totals only for approved, non-hidden (public) meals.
  *     tags: [Votes]
  *
  *     parameters:
@@ -90,6 +95,9 @@ router.post(
  *     responses:
  *       200:
  *         description: Meal votes fetched successfully
+ *
+ *       404:
+ *         description: Meal not found or not publicly visible
  */
 
 

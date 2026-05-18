@@ -116,51 +116,61 @@ const createSubmission = async (
 
 
     // ===================================
-    // HOT DEAL VALIDATION
-    // ===================================
-    const hotDealEnabled =
-      isHotDeal === true ||
-      isHotDeal === "true";
+// HOT DEAL VALIDATION
+// ===================================
+const hotDealEnabled =
+isHotDeal === true ||
+isHotDeal === "true";
 
+let parsedStartDate = null;
+let parsedEndDate = null;
 
-    if (hotDealEnabled) {
+if (hotDealEnabled) {
 
-      if (
-        !hotDealStartDateTime ||
-        !hotDealEndDateTime
-      ) {
+if (
+  !hotDealStartDateTime ||
+  !hotDealEndDateTime
+) {
 
-        return res.status(400).json({
-          success: false,
+  return res.status(400).json({
+    success: false,
 
-          message:
-            "hotDealStartDateTime and hotDealEndDateTime are required",
-        });
-      }
+    message:
+      "hotDealStartDateTime and hotDealEndDateTime are required",
+  });
+}
 
+parsedStartDate =
+  new Date(hotDealStartDateTime);
 
-      const start =
-        new Date(
-          hotDealStartDateTime
-        );
+parsedEndDate =
+  new Date(hotDealEndDateTime);
 
-      const end =
-        new Date(
-          hotDealEndDateTime
-        );
+// INVALID DATE CHECK
+if (
+  isNaN(parsedStartDate.getTime()) ||
+  isNaN(parsedEndDate.getTime())
+) {
 
+  return res.status(400).json({
+    success: false,
 
-      if (start >= end) {
+    message:
+      "Invalid hot deal datetime format",
+  });
+}
 
-        return res.status(400).json({
-          success: false,
+// END MUST BE AFTER START
+if (parsedStartDate >= parsedEndDate) {
 
-          message:
-            "End datetime must be after start datetime",
-        });
-      }
-    }
+  return res.status(400).json({
+    success: false,
 
+    message:
+      "End datetime must be after start datetime",
+  });
+}
+}
 
     // ===================================
     // IMAGE UPLOAD
@@ -287,13 +297,13 @@ const createSubmission = async (
 
         mealId:
           meal.id,
-
+      
         startDateTime:
-          hotDealStartDateTime,
-
+          parsedStartDate,
+      
         endDateTime:
-          hotDealEndDateTime,
-
+          parsedEndDate,
+      
         description:
           hotDealDescription,
       });

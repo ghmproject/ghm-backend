@@ -79,23 +79,19 @@ const router = express.Router();
  *           type: string
  *           format: binary
  *
- *
  *         isHotDeal:
  *           type: boolean
  *           example: true
- *
  *
  *         hotDealStartDateTime:
  *           type: string
  *           format: date-time
  *           example: 2026-05-25T11:00:00
  *
- *
  *         hotDealEndDateTime:
  *           type: string
  *           format: date-time
  *           example: 2026-05-25T14:00:00
- *
  *
  *         hotDealDescription:
  *           type: string
@@ -146,14 +142,24 @@ const router = express.Router();
  *         hotDealStartDateTime:
  *           type: string
  *           format: date-time
+ *           example: 2026-05-25T11:00:00.000Z
  *
  *         hotDealEndDateTime:
  *           type: string
  *           format: date-time
+ *           example: 2026-05-25T14:00:00.000Z
  *
  *         hotDealDescription:
  *           type: string
  *           example: Dinner deal
+ *
+ *         remainingMs:
+ *           type: number
+ *           example: 7200000
+ *
+ *         countdown:
+ *           type: string
+ *           example: 2h 0m left
  *
  *         createdAt:
  *           type: string
@@ -214,7 +220,8 @@ router.post(
  * @swagger
  * /api/listings:
  *   get:
- *     summary: Get all approved listings
+ *     summary: Get all approved, visible listings
+ *     description: Returns approved meals that are not auto-hidden (report moderation).
  *     tags:
  *       - Listings
  *
@@ -239,7 +246,7 @@ router.get(
  * /api/listings/filter:
  *   get:
  *     summary: Filter restaurant listings
- *     description: Filter listings by cuisine and maximum price
+ *     description: Filter listings by cuisine and maximum price. Only approved, non-hidden meals are returned.
  *     tags:
  *       - Listings
  *
@@ -280,7 +287,7 @@ router.get(
  * /api/listings/hot-deals:
  *   get:
  *     summary: Get active hot deals
- *     description: Returns only currently active hot deals
+ *     description: Returns only currently active hot deals for approved, non-hidden meals.
  *     tags:
  *       - Listings
  *
@@ -305,6 +312,7 @@ router.get(
  * /api/listings/{id}:
  *   get:
  *     summary: Get single listing
+ *     description: Restaurant with meals; only approved, non-hidden meals are included.
  *     tags:
  *       - Listings
  *

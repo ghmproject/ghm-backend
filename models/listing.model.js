@@ -1,5 +1,9 @@
 const prisma = require("../config/prisma");
 
+const {
+  publicApprovedMealWhere,
+} = require("../utils/mealPublicFilter");
+
 
 // =======================================
 // FIND EXISTING RESTAURANT
@@ -160,13 +164,13 @@ const createHotDeal = async ({
 
       mealId,
 
-      startDateTime:
-        new Date(startDateTime),
+      startDateTime,
 
-      endDateTime:
-        new Date(endDateTime),
+      endDateTime,
 
       description,
+
+      isActive: true,
     },
   });
 };
@@ -178,22 +182,86 @@ const createHotDeal = async ({
 const getApprovedRestaurants =
   async () => {
 
-    return await prisma.restaurant.findMany({
+    const restaurants =
+      await prisma.restaurant.findMany({
 
-      include: {
+        where: {
 
-        meals: {
+          meals: {
 
-          where: {
-            status: "APPROVED",
-          },
-
-          include: {
-            hotDeals: true,
+            some: publicApprovedMealWhere,
           },
         },
-      },
-    });
+
+        include: {
+
+          meals: {
+
+            where: publicApprovedMealWhere,
+
+            include: {
+              hotDeals: true,
+            },
+          },
+        },
+      });
+
+
+    // FORMAT HOT DEALS
+    const formattedRestaurants =
+      restaurants.map((restaurant) => {
+
+        const formattedMeals =
+          restaurant.meals.map((meal) => {
+
+            const formattedDeals =
+              meal.hotDeals.map((deal) => {
+
+                const remainingMs =
+                  new Date(deal.endDateTime) -
+                  new Date();
+
+                const totalMinutes =
+                  Math.floor(
+                    remainingMs / (1000 * 60)
+                  );
+
+                const hours =
+                  Math.floor(totalMinutes / 60);
+
+                const minutes =
+                  totalMinutes % 60;
+
+                return {
+
+                  ...deal,
+
+                  remainingMs,
+
+                  countdown:
+                    `${hours}h ${minutes}m left`,
+                };
+              });
+
+            return {
+
+              ...meal,
+
+              hotDeals:
+                formattedDeals,
+            };
+          });
+
+        return {
+
+          ...restaurant,
+
+          meals:
+            formattedMeals,
+        };
+      });
+
+    return formattedRestaurants;
   };
 
 
@@ -203,15 +271,23 @@ const getApprovedRestaurants =
 const getSingleRestaurant =
   async (id) => {
 
-    return await prisma.restaurant.findUnique({
+    return await prisma.restaurant.findFirst({
 
       where: {
+
         id: Number(id),
+
+        meals: {
+
+          some: publicApprovedMealWhere,
+        },
       },
 
       include: {
 
         meals: {
+
+          where: publicApprovedMealWhere,
 
           include: {
             hotDeals: true,
@@ -230,25 +306,17 @@ const filterListings = async ({
   maxPrice,
 }) => {
 
-  const where = {
-
-    meals: {
-
-      some: {
-
-        status: "APPROVED",
-      },
-    },
+  const mealFilter = {
+    ...publicApprovedMealWhere,
   };
 
 
-  // CUISINE FILTER
   if (
     cuisine &&
     cuisine.toLowerCase() !== "all"
   ) {
 
-    where.meals.some.cuisine = {
+    mealFilter.cuisine = {
 
       equals: cuisine,
 
@@ -257,13 +325,21 @@ const filterListings = async ({
   }
 
 
-  // PRICE FILTER
   if (maxPrice) {
 
-    where.meals.some.price = {
+    mealFilter.price = {
       lte: Number(maxPrice),
     };
   }
+
+
+  const where = {
+
+    meals: {
+
+      some: mealFilter,
+    },
+  };
 
 
   return await prisma.restaurant.findMany({
@@ -274,9 +350,7 @@ const filterListings = async ({
 
       meals: {
 
-        where: {
-          status: "APPROVED",
-        },
+        where: mealFilter,
 
         include: {
           hotDeals: true,
@@ -295,35 +369,71 @@ const getActiveHotDeals =
 
     const now = new Date();
 
-    return await prisma.hotDeal.findMany({
+    const deals =
+      await prisma.hotDeal.findMany({
 
-      where: {
+        where: {
 
-        isActive: true,
+          isActive: true,
 
-        startDateTime: {
-          lte: now,
+          startDateTime: {
+            lte: now,
+          },
+
+          endDateTime: {
+            gte: now,
+          },
+
+          meal: publicApprovedMealWhere,
         },
 
-        endDateTime: {
-          gte: now,
-        },
-      },
+        include: {
 
-      include: {
+          meal: {
 
-        meal: {
-
-          include: {
-            restaurant: true,
+            include: {
+              restaurant: true,
+            },
           },
         },
-      },
 
-      orderBy: {
-        endDateTime: "asc",
-      },
-    });
+        orderBy: {
+          endDateTime: "asc",
+        },
+      });
+
+
+    // FORMAT RESPONSE
+    const formattedDeals =
+      deals.map((deal) => {
+
+        const remainingMs =
+          new Date(deal.endDateTime) -
+          new Date();
+
+        const totalMinutes =
+          Math.floor(
+            remainingMs / (1000 * 60)
+          );
+
+        const hours =
+          Math.floor(totalMinutes / 60);
+
+        const minutes =
+          totalMinutes % 60;
+
+        return {
+
+          ...deal,
+
+          remainingMs,
+
+          countdown:
+            `${hours}h ${minutes}m left`,
+        };
+      });
+
+    return formattedDeals;
   };
 
 

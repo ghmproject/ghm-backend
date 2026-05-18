@@ -9,7 +9,7 @@ const router = express.Router();
  * /api/listingNearby/nearby:
  *   get:
  *     summary: Get nearby restaurant listings
- *     description: Returns approved meal offers whose restaurants have coordinates, within 5km of the given user location (nearest first).
+ *     description: Returns approved, non-hidden meal offers whose restaurants have coordinates, within 5km of the given user location (nearest first).
  *     tags: [NearbyListings]
  *
  *     parameters:
