@@ -142,6 +142,7 @@ const verifyMagicLink = async (req, res) => {
       success: true,
       message: "Login successful",
       role: user.role,
+      accessToken: authToken,
     });
   } catch (error) {
     console.log(error);

@@ -4,8 +4,10 @@ const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
 const compression = require("compression");
-
+const cookieParser = require("cookie-parser");
 const swaggerUi = require("swagger-ui-express");
+
+dotenv.config();
 
 const swaggerSpec = require("./swagger");
 const authRoutes = require("./routes/auth.routes");
@@ -15,32 +17,65 @@ const nearbyListingRoutes = require("./routes/nearbyListing.routes");
 const reportRoutes = require("./routes/report.routes");
 const voteRoutes = require("./routes/vote.routes");
 
-dotenv.config();
-const cookieParser = require("cookie-parser");
 const app = express();
+
+const corsOrigins = [
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+  ...(process.env.FRONTEND_URL || "")
+    .split(",")
+    .map((o) => o.trim())
+    .filter(Boolean),
+  ...(process.env.CLIENT_URL || "")
+    .split(",")
+    .map((o) => o.trim())
+    .filter((o) => o && !o.includes("/api/"))
+    .filter(Boolean),
+];
 
 // ==========================
 // Middlewares
 // ==========================
+app.use(
+  cors({
+    origin: corsOrigins,
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use(cors());
-app.use(helmet());
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  })
+);
 app.use(morgan("dev"));
 app.use(compression());
+app.use(cookieParser());
 
 // ==========================
 // Swagger Docs Route
 // ==========================
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-app.use(cookieParser());
+app.use(
+  "/api-docs",
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpec, {
+    swaggerOptions: {
+      persistAuthorization: true,
+    },
+  })
+);
+
 app.use("/api/auth", authRoutes);
 app.use("/api/listings", listingRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/listingNearby", nearbyListingRoutes);
-app.use( "/api/reports",reportRoutes);
+app.use("/api/reports", reportRoutes);
 app.use("/api/votes", voteRoutes);
+
 // ==========================
 // 404 Handler
 // ==========================

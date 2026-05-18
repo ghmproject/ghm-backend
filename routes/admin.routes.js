@@ -492,6 +492,8 @@ router.patch(
  *       For each row:
  *       - Finds or creates a restaurant by name + suburb
  *       - Creates a meal linked to that restaurant with APPROVED status
+ *       - Uploads the `image` column to Cloudinary (folder GHMProject) when it is
+ *         an http(s) URL or a valid local file path; existing Cloudinary URLs are kept as-is
  *
  *       Required CSV columns:
  *       restaurantName, suburb, dishName, cuisine, price, latitude, longitude, image

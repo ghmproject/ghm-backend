@@ -2,6 +2,10 @@ const { Readable } = require("stream");
 const csv = require("csv-parser");
 
 const {
+  uploadCsvImageToCloudinary,
+} = require("../utils/uploadCsvImageToCloudinary");
+
+const {
   getPendingMeals,
   approveMeal,
   rejectMeal,
@@ -305,6 +309,11 @@ const importCsvController =
         }
 
         try {
+          const imageUrl =
+            await uploadCsvImageToCloudinary(
+              data.image
+            );
+
           let restaurant =
             await findRestaurant(
               data.restaurantName,
@@ -316,7 +325,7 @@ const importCsvController =
               await createRestaurant({
                 name: data.restaurantName,
                 suburb: data.suburb,
-                image: data.image,
+                image: imageUrl,
                 latitude: data.latitude,
                 longitude:
                   data.longitude,
@@ -332,7 +341,7 @@ const importCsvController =
                     data.latitude,
                   longitude:
                     data.longitude,
-                  image: data.image,
+                  image: imageUrl,
                 }
               );
           }

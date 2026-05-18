@@ -37,6 +37,7 @@ const findApprovedMealsWithRestaurantCoords = async () => {
         latitude: r.latitude,
         longitude: r.longitude,
         price: m.price,
+        image: r.image,
       });
     }
   }

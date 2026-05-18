@@ -56,6 +56,10 @@ const router = express.Router();
  *         role:
  *           type: string
  *           example: ADMIN
+ *
+ *         accessToken:
+ *           type: string
+ *           description: JWT for Swagger Authorize (Bearer)
  */
 
 

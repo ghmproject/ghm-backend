@@ -1,8 +1,22 @@
 const jwt = require("jsonwebtoken");
 
+const getTokenFromRequest = (req) => {
+  if (req.cookies?.ghm_token) {
+    return req.cookies.ghm_token;
+  }
+
+  const authHeader = req.headers.authorization;
+
+  if (authHeader?.startsWith("Bearer ")) {
+    return authHeader.slice(7).trim();
+  }
+
+  return null;
+};
+
 const authMiddleware = (req, res, next) => {
   try {
-    const token = req.cookies.ghm_token;
+    const token = getTokenFromRequest(req);
 
     if (!token) {
       return res.status(401).json({
@@ -11,10 +25,7 @@ const authMiddleware = (req, res, next) => {
       });
     }
 
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET
-    );
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     req.user = decoded;
 

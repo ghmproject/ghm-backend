@@ -9,7 +9,10 @@ const router = express.Router();
  * /api/listingNearby/nearby:
  *   get:
  *     summary: Get nearby restaurant listings
- *     description: Returns approved, non-hidden meal offers whose restaurants have coordinates, within 5km of the given user location (nearest first).
+ *     description: |
+ *       Returns approved, non-hidden meal offers whose restaurants have coordinates,
+ *       within the search radius of the user location (nearest first).
+ *       Default radius is 80km (override with radiusKm, max 150km).
  *     tags: [NearbyListings]
  *
  *     parameters:
@@ -28,6 +31,14 @@ const router = express.Router();
  *         schema:
  *           type: number
  *         example: 153.0251
+ *
+ *       - in: query
+ *         name: radiusKm
+ *         required: false
+ *         description: Search radius in km (default 80, max 150)
+ *         schema:
+ *           type: number
+ *         example: 80
  *
  *     responses:
  *       200:
@@ -61,6 +72,9 @@ const router = express.Router();
  *                         type: number
  *                       price:
  *                         type: number
+ *                       image:
+ *                         type: string
+ *                         nullable: true
  *             example:
  *               success: true
  *               data:
@@ -71,6 +85,7 @@ const router = express.Router();
  *                   latitude: -27.4812
  *                   longitude: 153.0234
  *                   price: 7
+ *                   image: "https://example.com/momo.jpg"
  *                 - id: 2
  *                   restaurantName: "Burger Spot"
  *                   dishName: "Cheese Burger"

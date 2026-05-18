@@ -5,7 +5,17 @@ const {
   findApprovedMealsWithRestaurantCoords,
 } = require("../models/nearbyListing.model");
 
-const MAX_RADIUS_METERS = 5000;
+/** Default search radius (km). Override via ?radiusKm= on the nearby endpoint. */
+const DEFAULT_RADIUS_KM =
+  Number(process.env.NEARBY_MAX_RADIUS_KM) || 80;
+const MAX_RADIUS_KM_CAP = 150;
+
+function resolveRadiusMeters(radiusKmRaw) {
+  const km = Number(radiusKmRaw);
+  const radiusKm =
+    Number.isFinite(km) && km > 0 ? km : DEFAULT_RADIUS_KM;
+  return Math.min(radiusKm, MAX_RADIUS_KM_CAP) * 1000;
+}
 
 const toPublicNearbyListing = (row) => ({
   id: row.mealId,
@@ -15,6 +25,7 @@ const toPublicNearbyListing = (row) => ({
   latitude: row.latitude,
   longitude: row.longitude,
   price: row.price,
+  image: row.image ?? null,
 });
 
 /**
@@ -22,7 +33,11 @@ const toPublicNearbyListing = (row) => ({
  *
  * @returns {Promise<{ status: number, body: unknown }>}
  */
-const getNearbyListingsPayload = async (latRaw, lngRaw) => {
+const getNearbyListingsPayload = async (
+  latRaw,
+  lngRaw,
+  maxRadiusMeters
+) => {
   const parsed = parseCoordinates(latRaw, lngRaw);
   if (!parsed.ok) {
     return {
@@ -44,7 +59,7 @@ const getNearbyListingsPayload = async (latRaw, lngRaw) => {
         longitude: row.longitude,
       }),
     }))
-    .filter((row) => row.distanceMeters <= MAX_RADIUS_METERS)
+    .filter((row) => row.distanceMeters <= maxRadiusMeters)
     .sort((a, b) => a.distanceMeters - b.distanceMeters);
 
   const data = enriched.map(toPublicNearbyListing);
@@ -60,8 +75,13 @@ const getNearbyListingsPayload = async (latRaw, lngRaw) => {
 
 const getNearbyListings = async (req, res) => {
   try {
-    const { lat, lng } = req.query;
-    const { status, body } = await getNearbyListingsPayload(lat, lng);
+    const { lat, lng, radiusKm } = req.query;
+    const maxRadiusMeters = resolveRadiusMeters(radiusKm);
+    const { status, body } = await getNearbyListingsPayload(
+      lat,
+      lng,
+      maxRadiusMeters
+    );
     return res.status(status).json(body);
   } catch (error) {
     console.error("getNearbyListings error:", error);
@@ -75,5 +95,6 @@ const getNearbyListings = async (req, res) => {
 module.exports = {
   getNearbyListings,
   getNearbyListingsPayload,
-  MAX_RADIUS_METERS,
+  DEFAULT_RADIUS_KM,
+  resolveRadiusMeters,
 };
