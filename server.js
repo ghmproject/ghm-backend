@@ -16,7 +16,9 @@ const adminRoutes = require("./routes/admin.routes");
 const nearbyListingRoutes = require("./routes/nearbyListing.routes");
 const reportRoutes = require("./routes/report.routes");
 const voteRoutes = require("./routes/vote.routes");
-
+const communityRoutes = require("./routes/community.routes");
+const commentRoutes = require("./routes/comment.routes");
+const featuredRoutes = require("./routes/featured.routes");
 const app = express();
 
 const corsOrigins = [
@@ -42,7 +44,7 @@ app.use(
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
-  })
+  }),
 );
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -50,7 +52,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(
   helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" },
-  })
+  }),
 );
 app.use(morgan("dev"));
 app.use(compression());
@@ -66,7 +68,7 @@ app.use(
     swaggerOptions: {
       persistAuthorization: true,
     },
-  })
+  }),
 );
 
 app.use("/api/auth", authRoutes);
@@ -75,7 +77,9 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/listingNearby", nearbyListingRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/votes", voteRoutes);
-
+app.use("/api/community", communityRoutes);
+app.use("/api/comments", commentRoutes);
+app.use("/api/admin/featured", featuredRoutes);
 // ==========================
 // 404 Handler
 // ==========================

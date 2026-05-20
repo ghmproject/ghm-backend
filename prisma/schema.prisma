@@ -18,6 +18,12 @@ enum ListingStatus {
   REJECTED
 }
 
+enum CommunityPostCategory {
+  FINDS
+  TIPS
+  PRICE_CHECKS
+}
+
 model User {
   id         Int      @id @default(autoincrement())
   name       String?
@@ -26,6 +32,11 @@ model User {
   magicToken String?
   createdAt  DateTime @default(now())
 
+  comments Comment[]
+  commentLikes CommentLike[]
+   communityPosts CommunityPost[]
+   communityPostLikes CommunityPostLike[]
+   communityPostComments CommunityPostComment[]
   @@map("users")
 }
 
@@ -62,6 +73,10 @@ model Meal {
 
   status ListingStatus @default(PENDING)
 
+  isFeatured Boolean @default(false)
+
+  featuredUntil DateTime?
+  
   isHidden Boolean @default(false)
 
   hiddenAt DateTime?
@@ -73,6 +88,8 @@ model Meal {
   reports Report[]
 
   votes Vote[]
+
+  comments Comment[]
 
   // HOT DEAL RELATION
   hotDeals HotDeal[]
@@ -139,4 +156,111 @@ model HotDeal {
   @@index([endDateTime])
 
   @@map("hot_deals")
+}
+
+
+model CommunityPost {
+  id              String   @id @default(uuid())
+
+  userId          Int
+  user            User     @relation(fields: [userId], references: [id])
+
+  title           String
+  category        CommunityPostCategory
+  body            String
+
+  imageUrl        String?
+
+  likesCount      Int      @default(0)
+  commentsCount   Int      @default(0)
+
+  createdAt       DateTime @default(now())
+
+  likes           CommunityPostLike[]
+  comments        CommunityPostComment[]
+  @@map("community_posts")
+}
+
+
+model CommunityPostLike {
+
+  id        String   @id @default(uuid())
+
+  postId    String
+  userId    Int
+
+  post      CommunityPost @relation(fields: [postId], references: [id])
+
+  user      User @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([postId, userId])
+
+  @@map("community_post_likes")
+}
+
+model CommunityPostComment {
+  id        String   @id @default(uuid())
+
+  postId    String
+  userId    Int
+  body      String
+
+  post      CommunityPost @relation(fields: [postId], references: [id])
+  user      User          @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@map("community_post_comments")
+}
+
+model Comment {
+
+  id Int @id @default(autoincrement())
+
+  mealId Int
+
+  meal Meal @relation( fields: [mealId],references: [id])
+
+  // COMMENT OWNER
+  userId Int
+
+  user User @relation(fields: [userId], references: [id] )
+
+  // REPLY SYSTEM
+  parentCommentId Int?
+
+  parentComment Comment? @relation("CommentReplies",fields: [parentCommentId],references: [id])
+
+  replies Comment[]@relation("CommentReplies")
+
+  content String
+
+  isHidden Boolean@default(false)
+
+  likes CommentLike[]
+
+  createdAt DateTime @default(now())
+
+  @@map("comments")
+}
+
+model CommentLike {
+
+  id Int @id @default(autoincrement())
+
+  commentId Int
+
+  comment Comment @relation( fields: [commentId], references: [id])
+
+  userId Int
+
+  user User @relation(fields: [userId],references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([commentId, userId])
+
+  @@map("comment_likes")
 }

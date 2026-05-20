@@ -149,6 +149,22 @@ const uploadSingleImage = (req, res, next) => {
   });
 };
 
+// Optional file: skips multer when no multipart body (e.g. JSON post without image).
+const uploadOptionalSingleImage = (req, res, next) => {
+  const contentType = req.headers["content-type"] || "";
+
+  if (!contentType.includes("multipart/form-data")) {
+    return next();
+  }
+
+  upload.single("image")(req, res, (err) => {
+    if (err) {
+      return handleMulterError(err, req, res, next);
+    }
+    next();
+  });
+};
+
 // ======================================
 // SHARP COMPRESSION
 // ======================================
@@ -201,6 +217,7 @@ const compressImage = async (req, res, next) => {
 module.exports = {
   upload,
   uploadSingleImage,
+  uploadOptionalSingleImage,
   compressImage,
   handleMulterError,
 };
