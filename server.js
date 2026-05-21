@@ -20,6 +20,7 @@ const communityRoutes = require("./routes/community.routes");
 const commentRoutes = require("./routes/comment.routes");
 const featuredRoutes = require("./routes/featured.routes");
 const rankingSystemRoutes = require("./routes/rankingSystem.routes");
+const profileRoutes = require("./routes/profile.routes");
 const app = express();
 
 const corsOrigins = [
@@ -82,6 +83,7 @@ app.use("/api/community", communityRoutes);
 app.use("/api/comments", commentRoutes);
 app.use("/api/admin/featured", featuredRoutes);
 app.use("/api/ranking", rankingSystemRoutes);
+app.use("/api/profile", profileRoutes);
 // ==========================
 // 404 Handler
 // ==========================

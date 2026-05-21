@@ -68,6 +68,7 @@ const loadPublicMeals = async (suburbFilter) => {
       price: true,
       cuisine: true,
       restaurantId: true,
+      image: true,
       restaurant: {
         select: {
           id: true,
@@ -75,7 +76,6 @@ const loadPublicMeals = async (suburbFilter) => {
           suburb: true,
           latitude: true,
           longitude: true,
-          image: true,
         },
       },
     },
@@ -221,7 +221,7 @@ const aggregateMealsByRestaurant = (meals, metricsByMealId) => {
         restaurantId: rid,
         restaurantName: meal.restaurant.name,
         suburb: meal.restaurant.suburb,
-        image: meal.restaurant.image,
+        image: meal.image,
         latitude: meal.restaurant.latitude,
         longitude: meal.restaurant.longitude,
         distanceMeters: meal.distanceMeters ?? null,
@@ -262,8 +262,10 @@ const aggregateMealsByRestaurant = (meals, metricsByMealId) => {
         dishName: meal.dishName,
         price: meal.price,
         cuisine: meal.cuisine,
+        image: meal.image,
         popularityScore: mealScores.popularityScore,
       };
+      agg.image = meal.image;
     }
   }
 
@@ -277,7 +279,7 @@ const aggregateMealsByRestaurant = (meals, metricsByMealId) => {
       restaurantId: agg.restaurantId,
       restaurantName: agg.restaurantName,
       suburb: agg.suburb,
-      image: agg.image,
+      image: agg.topMeal?.image ?? agg.image ?? null,
       latitude: agg.latitude,
       longitude: agg.longitude,
       distanceMeters: agg.distanceMeters,

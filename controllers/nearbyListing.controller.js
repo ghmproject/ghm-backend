@@ -26,6 +26,7 @@ const toPublicNearbyListing = (row) => ({
   longitude: row.longitude,
   price: row.price,
   image: row.image ?? null,
+  isFeatured: Boolean(row.isFeatured),
 });
 
 /**

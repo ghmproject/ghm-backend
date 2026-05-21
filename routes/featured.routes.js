@@ -14,6 +14,9 @@ const {
 const authMiddleware =
   require("../middleware/auth.middleware");
 
+const adminMiddleware =
+  require("../middleware/admin.middleware");
+
 const router =
   express.Router();
 
@@ -109,6 +112,8 @@ const router =
  */
 router.get(
   "/",
+  authMiddleware,
+  adminMiddleware,
   getFeaturedListingsController
 );
 
@@ -203,5 +208,7 @@ router.get(
 router.patch(
   "/:mealId",
   authMiddleware,
-  toggleFeaturedController);
+  adminMiddleware,
+  toggleFeaturedController
+);
 module.exports =router;

@@ -2,6 +2,7 @@ const express = require("express");
 
 const {
   createReportController,
+  getMyReportStatusController,
   getReportsController,
 } = require("../controllers/report.controller");
 
@@ -30,10 +31,13 @@ const router = express.Router();
  *   post:
  *     summary: Report a listing
  *     description: |
- *       Users can report outdated or incorrect listing information.
+ *       Signed-in users only. One report per account per meal.
  *       After three reports for the same meal, the listing is automatically hidden from public APIs until an admin restores it.
  *     tags:
  *       - Reports
+ *
+ *     security:
+ *       - bearerAuth: []
  *
  *     requestBody:
  *       required: true
@@ -81,6 +85,12 @@ const router = express.Router();
  *       400:
  *         description: Validation error
  *
+ *       401:
+ *         description: Sign in required
+ *
+ *       409:
+ *         description: Already reported this meal
+ *
  *       404:
  *         description: Meal not found
  *
@@ -89,9 +99,17 @@ const router = express.Router();
  */
 
 
-// CREATE REPORT
+// MY REPORT STATUS FOR MEAL
+router.get(
+  "/meal/:mealId/mine",
+  authMiddleware,
+  getMyReportStatusController
+);
+
+// CREATE REPORT (one per user per meal)
 router.post(
   "/",
+  authMiddleware,
   createReportController
 );
 

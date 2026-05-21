@@ -241,8 +241,6 @@ if (parsedStartDate >= parsedEndDate) {
 
           suburb,
 
-          image,
-
           latitude:
             coords.lat,
 
@@ -263,8 +261,6 @@ if (parsedStartDate >= parsedEndDate) {
 
             longitude:
               coords.lng,
-
-            image,
           }
         );
     }
@@ -285,6 +281,8 @@ if (parsedStartDate >= parsedEndDate) {
 
         price:
           priceNum,
+
+        image,
       });
 
 

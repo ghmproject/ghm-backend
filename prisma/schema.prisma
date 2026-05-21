@@ -37,6 +37,7 @@ model User {
    communityPosts CommunityPost[]
    communityPostLikes CommunityPostLike[]
    communityPostComments CommunityPostComment[]
+  reports Report[]
   @@map("users")
 }
 
@@ -50,8 +51,6 @@ model Restaurant {
   latitude Float?
 
   longitude Float?
-
-  image String?
 
   createdAt DateTime @default(now())
 
@@ -70,6 +69,8 @@ model Meal {
   cuisine String?
 
   price Float
+
+  image String?
 
   status ListingStatus @default(PENDING)
 
@@ -102,12 +103,17 @@ model Report {
 
   mealId Int
 
+  userId Int
+
   reason String
 
   createdAt DateTime @default(now())
 
   meal Meal @relation(fields: [mealId], references: [id])
 
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([mealId, userId])
   @@map("reports")
 }
 

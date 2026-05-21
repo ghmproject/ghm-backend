@@ -29,7 +29,12 @@ const findApprovedMealsWithRestaurantCoords = async () => {
   const rows = [];
   for (const r of restaurants) {
     for (const m of r.meals) {
+      const featuredActive =
+        m.isFeatured &&
+        (!m.featuredUntil || new Date(m.featuredUntil) > new Date());
+
       rows.push({
+        id: m.id,
         mealId: m.id,
         restaurantName: r.name,
         dishName: m.dishName,
@@ -37,7 +42,8 @@ const findApprovedMealsWithRestaurantCoords = async () => {
         latitude: r.latitude,
         longitude: r.longitude,
         price: m.price,
-        image: r.image,
+        image: m.image,
+        isFeatured: featuredActive,
       });
     }
   }

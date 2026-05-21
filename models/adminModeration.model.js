@@ -6,17 +6,7 @@ const prisma = require("../config/prisma");
 const getReportedOrHiddenMeals = async () => {
   return await prisma.meal.findMany({
     where: {
-      OR: [
-        {
-          isHidden: true,
-        },
-
-        {
-          reports: {
-            some: {},
-          },
-        },
-      ],
+      isHidden: true,
     },
 
     include: {

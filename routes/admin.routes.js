@@ -11,6 +11,10 @@ const {
   rejectReportedListing,
 } = require("../controllers/admin.controller");
 
+const {
+  searchRestaurantsController,
+} = require("../controllers/restaurantSearch.controller");
+
 const authMiddleware = require(
   "../middleware/auth.middleware"
 );
@@ -43,15 +47,15 @@ const csvUpload = multer({
       file.mimetype
     );
 
-    const isCsvExtension = file.originalname
-      .toLowerCase()
-      .endsWith(".csv");
+    const lowerName = file.originalname.toLowerCase();
+    const isAllowedExtension =
+      lowerName.endsWith(".csv") || lowerName.endsWith(".xlsx");
 
-    if (isCsvMime || isCsvExtension) {
+    if (isCsvMime || isAllowedExtension) {
       cb(null, true);
     } else {
       cb(
-        new Error("Only CSV files are allowed"),
+        new Error("Only .csv or .xlsx files are allowed"),
         false
       );
     }
@@ -88,10 +92,6 @@ const csvUpload = multer({
  *           type: string
  *           example: West End
  *
- *         image:
- *           type: string
- *           example: https://res.cloudinary.com/demo/image/upload/sample.jpg
- *
  *         createdAt:
  *           type: string
  *           format: date-time
@@ -118,6 +118,11 @@ const csvUpload = multer({
  *         price:
  *           type: number
  *           example: 8
+ *
+ *         image:
+ *           type: string
+ *           nullable: true
+ *           example: https://res.cloudinary.com/demo/image/upload/sample.jpg
  *
  *         status:
  *           type: string
@@ -211,8 +216,7 @@ router.get(
  *   get:
  *     summary: Get hidden or reported meals
  *     description: |
- *       Returns meals that are auto-hidden (3+ reports) or have at least one report,
- *       with restaurant, reports, and meal details for admin review.
+ *       Returns meals currently auto-hidden from the map (3+ reports), with report details for review.
  *     tags:
  *       - Admin
  *     security:
@@ -496,7 +500,9 @@ router.patch(
  *         an http(s) URL or a valid local file path; existing Cloudinary URLs are kept as-is
  *
  *       Required CSV columns:
- *       restaurantName, suburb, dishName, cuisine, price, latitude, longitude, image
+ *       restaurantName, suburb (full address), dishName, cuisine, price, image
+ *
+ *       Latitude/longitude are resolved server-side from the address in `suburb`.
  *     tags:
  *       - Admin
  *
@@ -546,6 +552,16 @@ router.patch(
  *         description: Internal server error
  */
 
+
+// ======================================
+// RESTAURANT SEARCH (indexed FTS)
+// ======================================
+router.get(
+  "/restaurants/search",
+  authMiddleware,
+  adminMiddleware,
+  searchRestaurantsController
+);
 
 // ======================================
 // IMPORT CSV

@@ -1,5 +1,9 @@
-const prisma =
-  require("../config/prisma");
+const prisma = require("../config/prisma");
+const {
+  searchMealsByFts,
+  normalizeSearchQuery,
+  MIN_SEARCH_LEN,
+} = require("../utils/restaurantFts");
 
 
 // =========================================
@@ -40,60 +44,28 @@ const toggleFeaturedListing =
 // =========================================
 // GET FEATURED LISTINGS
 // =========================================
-const getFeaturedListings =
-  async (search) => {
+const getFeaturedListings = async (search) => {
+  const q = normalizeSearchQuery(search);
 
-    return await prisma.meal.findMany({
+  if (q.length >= MIN_SEARCH_LEN) {
+    const rows = await searchMealsByFts(q, 50);
+    return rows.filter((m) => m.isFeatured);
+  }
 
-      where: {
-
-        isFeatured: true,
-
-        status: "APPROVED",
-
-        isHidden: false,
-
-        ...(search && {
-
-          OR: [
-
-            {
-
-              dishName: {
-
-                contains: search,
-
-                mode: "insensitive",
-              },
-            },
-
-            {
-
-              restaurant: {
-
-                name: {
-
-                  contains: search,
-
-                  mode: "insensitive",
-                },
-              },
-            },
-          ],
-        }),
-      },
-
-      include: {
-
-        restaurant: true,
-      },
-
-      orderBy: {
-
-        createdAt: "desc",
-      },
-    });
-  };
+  return prisma.meal.findMany({
+    where: {
+      isFeatured: true,
+      status: "APPROVED",
+      isHidden: false,
+    },
+    include: {
+      restaurant: true,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+};
 
 
 module.exports = {

@@ -9,6 +9,8 @@ const {
 
   toggleCommentLike,
 } = require("../models/comment.model");
+const { resolveAuthUserId } = require("../utils/resolveAuthUser");
+const prisma = require("../config/prisma");
 
 // =========================================
 // CREATE COMMENT / REPLY
@@ -23,7 +25,14 @@ const createCommentController = async (req, res) => {
       parentCommentId,
     } = req.body;
 
-    const userId = req.user.id;
+    const userId = await resolveAuthUserId(req.user);
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Sign in again to comment",
+      });
+    }
 
     if (!mealId || !content) {
       return res.status(400).json({
@@ -33,8 +42,34 @@ const createCommentController = async (req, res) => {
       });
     }
 
+    const mealIdNum = Number(mealId);
+    const meal = await prisma.meal.findUnique({
+      where: { id: mealIdNum },
+      select: { id: true },
+    });
+
+    if (!meal) {
+      return res.status(404).json({
+        success: false,
+        message: "Meal not found",
+      });
+    }
+
+    if (parentCommentId != null) {
+      const parent = await prisma.comment.findUnique({
+        where: { id: Number(parentCommentId) },
+        select: { id: true, mealId: true },
+      });
+      if (!parent || parent.mealId !== mealIdNum) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid reply target",
+        });
+      }
+    }
+
     const comment = await createComment({
-      mealId: Number(mealId),
+      mealId: mealIdNum,
 
       userId,
 
@@ -54,6 +89,13 @@ const createCommentController = async (req, res) => {
     });
   } catch (error) {
     console.log(error);
+
+    if (error?.code === "P2003") {
+      return res.status(401).json({
+        success: false,
+        message: "Sign in again to comment",
+      });
+    }
 
     return res.status(500).json({
       success: false,
@@ -147,7 +189,14 @@ const toggleCommentLikeController = async (req, res) => {
   try {
     const { commentId } = req.params;
 
-    const userId = req.user.id;
+    const userId = await resolveAuthUserId(req.user);
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Sign in again to like comments",
+      });
+    }
 
     const result = await toggleCommentLike({
       commentId: Number(commentId),

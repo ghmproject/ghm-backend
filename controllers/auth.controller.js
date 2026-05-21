@@ -9,6 +9,20 @@ const {
 } = require("../models/auth.model");
 const sendMagicEmail = require("../utils/sendMail");
 
+function getFrontendBaseUrl() {
+  const raw =
+    process.env.FRONTEND_URL ||
+    process.env.CLIENT_URL ||
+    "http://localhost:3000";
+
+  return raw.split(",")[0].trim().replace(/\/$/, "");
+}
+
+function isBrowserLinkClick(req) {
+  const accept = req.headers.accept || "";
+  return accept.includes("text/html");
+}
+
 // =====================================
 // SEND MAGIC LINK
 // =====================================
@@ -63,8 +77,8 @@ const sendMagicLink = async (req, res) => {
     // Save token
     await updateMagicToken(user.id, magicToken);
 
-    // Magic link
-    const magicLink = `http://localhost:5000/api/auth/verify?token=${magicToken}`;
+    // Magic link — open the Next.js app (not the JSON API in the browser)
+    const magicLink = `${getFrontendBaseUrl()}/auth/verify?token=${encodeURIComponent(magicToken)}`;
 
     // Send email
     await sendMagicEmail(email, magicLink);
@@ -89,12 +103,24 @@ const sendMagicLink = async (req, res) => {
 const verifyMagicLink = async (req, res) => {
   try {
     const { token } = req.query;
+    const frontendBase = getFrontendBaseUrl();
 
     if (!token) {
+      if (isBrowserLinkClick(req)) {
+        return res.redirect(`${frontendBase}/login?error=verify-failed`);
+      }
+
       return res.status(400).json({
         success: false,
         message: "Token missing",
       });
+    }
+
+    // Email / browser opens the API URL → send user to the app instead of raw JSON
+    if (isBrowserLinkClick(req)) {
+      return res.redirect(
+        `${frontendBase}/auth/verify?token=${encodeURIComponent(token)}`,
+      );
     }
 
     // Verify JWT
@@ -114,6 +140,7 @@ const verifyMagicLink = async (req, res) => {
     const authToken = jwt.sign(
       {
         id: user.id,
+        email: user.email,
         role: user.role,
       },
 

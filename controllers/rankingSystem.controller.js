@@ -79,6 +79,8 @@ const buildRestaurantRow = (raw) => ({
   dishName: raw.dishName,
   topMealId: raw.topMealId,
   suburb: raw.suburb,
+  /** Full restaurant address (stored in DB `suburb` column). */
+  address: raw.suburb,
   price: raw.price,
   topMealPrice: raw.topMealPrice,
   cuisine: raw.cuisine,
@@ -198,16 +200,8 @@ const getRestaurantRankings = async (req, res) => {
 
     const ranked = rows.map((r) => buildRestaurantRow(r));
 
-    if (nearMe && sortBy === "votes") {
-      ranked.sort((a, b) => {
-        if (a._sort.distance !== b._sort.distance) {
-          return a._sort.distance - b._sort.distance;
-        }
-        return b._sort.votes - a._sort.votes;
-      });
-    } else {
-      ranked.sort((a, b) => b._sort[sortBy] - a._sort[sortBy]);
-    }
+    // Highest score first (votes / activity / engagement / popularity).
+    ranked.sort((a, b) => b._sort[sortBy] - a._sort[sortBy]);
 
     const sliced = ranked.slice(0, limit).map((row, index) => {
       const { _sort, ...rest } = row;

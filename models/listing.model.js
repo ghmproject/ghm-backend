@@ -36,7 +36,6 @@ const findRestaurant = async (
 const createRestaurant = async ({
   name,
   suburb,
-  image,
   latitude,
   longitude,
 }) => {
@@ -47,8 +46,6 @@ const createRestaurant = async ({
       name,
 
       suburb,
-
-      image,
 
       latitude,
 
@@ -63,7 +60,7 @@ const createRestaurant = async ({
 // =======================================
 const updateRestaurantLocation = async (
   id,
-  { latitude, longitude, image }
+  { latitude, longitude }
 ) => {
 
   const data = {};
@@ -74,13 +71,6 @@ const updateRestaurantLocation = async (
 
   if (longitude != null) {
     data.longitude = longitude;
-  }
-
-  if (
-    image != null &&
-    image !== ""
-  ) {
-    data.image = image;
   }
 
   if (!Object.keys(data).length) {
@@ -116,6 +106,8 @@ const createMeal = async ({
 
   price,
 
+  image,
+
   status,
 
 }) => {
@@ -131,6 +123,9 @@ const createMeal = async ({
     price,
   };
 
+  if (image != null && image !== "") {
+    data.image = image;
+  }
 
   if (status) {
     data.status = status;
@@ -268,34 +263,51 @@ const getApprovedRestaurants =
 // =======================================
 // GET SINGLE RESTAURANT
 // =======================================
-const getSingleRestaurant =
-  async (id) => {
+const restaurantDetailInclude = {
+  meals: {
+    where: publicApprovedMealWhere,
+    include: {
+      hotDeals: true,
+    },
+  },
+};
 
-    return await prisma.restaurant.findFirst({
+const getSingleRestaurant = async (id) => {
+  const numId = Number(id);
+  if (!Number.isFinite(numId)) return null;
 
-      where: {
-
-        id: Number(id),
-
-        meals: {
-
-          some: publicApprovedMealWhere,
-        },
+  const byRestaurant = await prisma.restaurant.findFirst({
+    where: {
+      id: numId,
+      meals: {
+        some: publicApprovedMealWhere,
       },
+    },
+    include: restaurantDetailInclude,
+  });
 
-      include: {
+  if (byRestaurant) return byRestaurant;
 
-        meals: {
+  const meal = await prisma.meal.findFirst({
+    where: {
+      id: numId,
+      ...publicApprovedMealWhere,
+    },
+    select: { restaurantId: true },
+  });
 
-          where: publicApprovedMealWhere,
+  if (!meal) return null;
 
-          include: {
-            hotDeals: true,
-          },
-        },
+  return prisma.restaurant.findFirst({
+    where: {
+      id: meal.restaurantId,
+      meals: {
+        some: publicApprovedMealWhere,
       },
-    });
-  };
+    },
+    include: restaurantDetailInclude,
+  });
+};
 
 
 // =======================================
