@@ -8,7 +8,7 @@ const getTokenFromRequest = (req) => {
   const authHeader = req.headers.authorization;
 
   if (authHeader?.startsWith("Bearer ")) {
-    return authHeader.slice(7).trim();
+    return authHeader.slice(7).trim(); 
   }
 
   return null;
