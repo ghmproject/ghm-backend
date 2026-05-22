@@ -6,16 +6,17 @@ const { createGeocodeResolver } = require("../utils/geocodeAddress");
 
 const {
   REQUIRED_CSV_COLUMNS, 
-  isExcelBuffer,
   parseImportSpreadsheet,
   getCsvHeaderReport,
   normalizeImportRow,
+  buildCsvExportBuffer,
 } = require("../utils/parseImportSpreadsheet");
 
 const {
   getPendingMeals,
   approveMeal,
   rejectMeal,
+  getMealsForCsvExport,
 } = require("../models/admin.model");
 
 const {
@@ -133,22 +134,15 @@ const importCsvController =
       }
 
       const fileName = req.file.originalname.toLowerCase();
-      const isCsv = fileName.endsWith(".csv");
-      const isXlsx = fileName.endsWith(".xlsx");
+      const isAllowedSpreadsheet =
+        fileName.endsWith(".csv") ||
+        fileName.endsWith(".xlsx") ||
+        fileName.endsWith(".xls");
 
-      if (!isCsv && !isXlsx) {
+      if (!isAllowedSpreadsheet) {
         return res.status(400).json({
           success: false,
-          message:
-            "Upload a .csv or .xlsx file (Excel: File → Save As → CSV UTF-8, or upload .xlsx directly)",
-        });
-      }
-
-      if (isCsv && isExcelBuffer(req.file.buffer)) {
-        return res.status(400).json({
-          success: false,
-          message:
-            "This file is an Excel workbook, not CSV. Save as .xlsx and upload again, or in Excel use File → Save As → CSV UTF-8 (Comma delimited).",
+          message: "Upload a .csv or Excel file (.xlsx or .xls).",
         });
       }
 
@@ -366,11 +360,45 @@ const rejectReportedListing = async (req, res) => {
   }
 };
 
+// ======================================
+// EXPORT CSV
+// ======================================
+const exportCsvController = async (req, res) => {
+  try {
+    const meals = await getMealsForCsvExport();
+
+    const rows = meals.map((meal) => ({
+      restaurantName: meal.restaurant?.name ?? "",
+      suburb: meal.restaurant?.suburb ?? "",
+      dishName: meal.dishName ?? "",
+      cuisine: meal.cuisine ?? "",
+      price: meal.price ?? "",
+      image: meal.image ?? "",
+    }));
+
+    const buffer = buildCsvExportBuffer(rows);
+
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader(
+      "Content-Disposition",
+      'attachment; filename="ghm-feeds-export.csv"',
+    );
+    return res.status(200).send(buffer);
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
 module.exports = {
   getPendingRequests,
   approveRequest,
   rejectRequest,
   importCsvController,
+  exportCsvController,
   getReportedListings,
   restoreListing,
   rejectReportedListing,

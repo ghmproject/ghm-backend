@@ -6,6 +6,7 @@ const {
   approveRequest,
   rejectRequest,
   importCsvController,
+  exportCsvController,
   getReportedListings,
   restoreListing,
   rejectReportedListing,
@@ -49,13 +50,15 @@ const csvUpload = multer({
 
     const lowerName = file.originalname.toLowerCase();
     const isAllowedExtension =
-      lowerName.endsWith(".csv") || lowerName.endsWith(".xlsx");
+      lowerName.endsWith(".csv") ||
+      lowerName.endsWith(".xlsx") ||
+      lowerName.endsWith(".xls");
 
     if (isCsvMime || isAllowedExtension) {
       cb(null, true);
     } else {
       cb(
-        new Error("Only .csv or .xlsx files are allowed"),
+        new Error("Only .csv or Excel (.xlsx, .xls) files are allowed"),
         false
       );
     }
@@ -593,6 +596,16 @@ router.post(
   },
 
   importCsvController
+);
+
+// ======================================
+// EXPORT CSV
+// ======================================
+router.get(
+  "/export-csv",
+  authMiddleware,
+  adminMiddleware,
+  exportCsvController,
 );
 
 module.exports = router;

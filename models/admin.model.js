@@ -90,8 +90,27 @@ const rejectMeal = async (id) => {
   });
 };
 
+// ======================================
+// EXPORT MEALS (CSV template columns)
+// ======================================
+const getMealsForCsvExport = async () => {
+  return await prisma.meal.findMany({
+    where: {
+      status: "APPROVED",
+    },
+    include: {
+      restaurant: true,
+    },
+    orderBy: [
+      { restaurant: { name: "asc" } },
+      { dishName: "asc" },
+    ],
+  });
+};
+
 module.exports = {
   getPendingMeals,
   approveMeal,
   rejectMeal,
+  getMealsForCsvExport,
 };

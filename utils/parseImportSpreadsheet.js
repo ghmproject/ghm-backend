@@ -49,13 +49,25 @@ const canonicalizeCsvHeader = (header) => {
   return CSV_HEADER_ALIASES[compact] || raw;
 };
 
-const isExcelBuffer = (buffer) =>
+/** Modern Excel .xlsx (ZIP / OOXML). */
+const isXlsxBuffer = (buffer) =>
   Buffer.isBuffer(buffer) &&
   buffer.length >= 4 &&
   buffer[0] === 0x50 &&
   buffer[1] === 0x4b &&
   buffer[2] === 0x03 &&
   buffer[3] === 0x04;
+
+/** Legacy Excel .xls (OLE compound document). */
+const isXlsBuffer = (buffer) =>
+  Buffer.isBuffer(buffer) &&
+  buffer.length >= 8 &&
+  buffer[0] === 0xd0 &&
+  buffer[1] === 0xcf &&
+  buffer[2] === 0x11 &&
+  buffer[3] === 0xe0;
+
+const isExcelBuffer = (buffer) => isXlsxBuffer(buffer) || isXlsBuffer(buffer);
 
 const detectCsvSeparator = (buffer) => {
   const firstLine =
@@ -186,10 +198,38 @@ const normalizeImportRow = (row) => {
   };
 };
 
+const escapeCsvCell = (value) => {
+  const s = value == null ? "" : String(value);
+  if (/[",\n\r]/.test(s)) {
+    return `"${s.replace(/"/g, '""')}"`;
+  }
+  return s;
+};
+
+const buildCsvExportBuffer = (rows) => {
+  const lines = [
+    REQUIRED_CSV_COLUMNS.join(","),
+    ...rows.map((row) =>
+      [
+        row.restaurantName,
+        row.suburb,
+        row.dishName,
+        row.cuisine,
+        row.price,
+        row.image,
+      ]
+        .map(escapeCsvCell)
+        .join(","),
+    ),
+  ];
+  return Buffer.from(`${lines.join("\n")}\n`, "utf8");
+};
+
 module.exports = {
   REQUIRED_CSV_COLUMNS,
   isExcelBuffer,
   parseImportSpreadsheet,
   getCsvHeaderReport,
   normalizeImportRow,
+  buildCsvExportBuffer,
 };
