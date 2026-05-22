@@ -45,12 +45,40 @@ function isSuburbNameOnly(suburb) {
 }
 
 /**
- * @param {{ suburb: string, latitude: unknown, longitude: unknown }} params
+ * @param {{ suburb: string, latitude: unknown, longitude: unknown, pinnedLocation?: boolean }} params
  */
-async function resolveSubmissionLocation({ suburb, latitude, longitude }) {
+async function resolveSubmissionLocation({
+  suburb,
+  latitude,
+  longitude,
+  pinnedLocation,
+}) {
   const clientCoords = parseCoordinates(latitude, longitude);
   if (!clientCoords.ok) {
     return clientCoords;
+  }
+
+  const usePin =
+    pinnedLocation === true ||
+    pinnedLocation === "true" ||
+    pinnedLocation === 1 ||
+    pinnedLocation === "1";
+
+  if (usePin) {
+    if (isSuburbNameOnly(suburb)) {
+      return {
+        ok: false,
+        status: 400,
+        message: SUBURB_ONLY_ERROR,
+      };
+    }
+
+    return {
+      ok: true,
+      lat: clientCoords.lat,
+      lng: clientCoords.lng,
+      mode: "pin",
+    };
   }
 
   if (isSuburbNameOnly(suburb)) {

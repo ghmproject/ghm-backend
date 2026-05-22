@@ -31,6 +31,10 @@ const toPublicNearbyListing = (row) => {
     price: row.price,
     image: row.image ?? null,
     isFeatured: Boolean(row.isFeatured),
+    createdAt:
+      row.createdAt instanceof Date
+        ? row.createdAt.toISOString()
+        : row.createdAt,
   };
 };
 

@@ -316,9 +316,8 @@ const getSingleRestaurant = async (id) => {
 const { getRestaurantRankingRows } = require("./rankingSystem.model");
 
 /** Navbar “Top Rated” chip — ranking vote net score. */
-const TOP_RATED_FILTER_MIN_NET_SCORE = 1;
-/** Filter feeds “Top rated” — minimum total vote events (up + down). */
-const TOP_RATED_FILTER_MIN_VOTE_COUNT = 5;
+/** Filter feeds “Top rated” — minimum restaurant popularity score (net score). */
+const TOP_RATED_FILTER_MIN_POPULARITY_SCORE = 50;
 const PRICE_VERIFIED_WINDOW_DAYS = 30;
 
 const isActiveHotDeal = (deal, now = new Date()) =>
@@ -444,16 +443,9 @@ const filterListings = async ({
     radiusKm,
   });
 
-  const minVotesNum = Number(minVotes);
-  const useVoteCountThreshold =
-    Number.isFinite(minVotesNum) && minVotesNum > 0;
-
-  const qualifyingRows = rows.filter((row) => {
-    const totalVotes = row.upvotes + row.downvotes;
-    return useVoteCountThreshold
-      ? totalVotes >= minVotesNum
-      : row.voteScore >= TOP_RATED_FILTER_MIN_NET_SCORE;
-  });
+  const qualifyingRows = rows.filter(
+    (row) => row.popularityScore >= TOP_RATED_FILTER_MIN_POPULARITY_SCORE,
+  );
 
   const metricsByRestaurantId = new Map(
     qualifyingRows.map((row) => [
@@ -461,6 +453,7 @@ const filterListings = async ({
       {
         voteScore: row.voteScore,
         totalVotes: row.upvotes + row.downvotes,
+        popularityScore: row.popularityScore,
       },
     ]),
   );
@@ -475,12 +468,13 @@ const filterListings = async ({
         ...restaurant,
         netScore: metrics.voteScore,
         voteCount: metrics.totalVotes,
+        popularityScore: metrics.popularityScore,
       };
     })
-    .sort((a, b) =>
-      useVoteCountThreshold
-        ? b.voteCount - a.voteCount || b.netScore - a.netScore
-        : b.netScore - a.netScore,
+    .sort(
+      (a, b) =>
+        (b.popularityScore ?? 0) - (a.popularityScore ?? 0) ||
+        b.netScore - a.netScore,
     );
 };
 

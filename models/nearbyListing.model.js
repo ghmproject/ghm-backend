@@ -44,6 +44,7 @@ const findApprovedMealsWithRestaurantCoords = async () => {
         price: m.price,
         image: m.image,
         isFeatured: featuredActive,
+        createdAt: m.createdAt,
       });
     }
   }

@@ -50,6 +50,7 @@ const createSubmission = async (
       price,
       latitude,
       longitude,
+      pinnedLocation,
 
       // HOT DEALS
       isHotDeal,
@@ -88,6 +89,7 @@ const createSubmission = async (
       suburb,
       latitude,
       longitude,
+      pinnedLocation,
     });
 
     if (!coords.ok) {
