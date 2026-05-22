@@ -2,6 +2,7 @@ const { parseCoordinates } = require("../utils/parseCoordinates");
 const {
   getSuburbRankingRows,
   getRestaurantRankingRows,
+  getRestaurantPopularityRow,
   ACTIVITY_WINDOW_DAYS,
 } = require("../models/rankingSystem.model");
 
@@ -163,6 +164,33 @@ const getSuburbRankings = async (req, res) => {
  */
 const getRestaurantRankings = async (req, res) => {
   try {
+    const restaurantIdRaw = req.query.restaurantId;
+    if (restaurantIdRaw != null && String(restaurantIdRaw).trim() !== "") {
+      const rid = Number(restaurantIdRaw);
+      if (!Number.isFinite(rid) || rid <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: "restaurantId must be a positive number",
+        });
+      }
+
+      const raw = await getRestaurantPopularityRow(rid);
+      if (!raw) {
+        return res.status(404).json({
+          success: false,
+          message: "Restaurant not found",
+        });
+      }
+
+      const built = buildRestaurantRow(raw);
+      const { _sort, ...data } = built;
+
+      return res.status(200).json({
+        success: true,
+        data,
+      });
+    }
+
     const sortByRaw = (req.query.sortBy || "votes").toLowerCase();
     const sortBy = SORT_KEYS.includes(sortByRaw) ? sortByRaw : "votes";
 

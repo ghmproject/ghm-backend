@@ -2,6 +2,7 @@ const {
     findPublicApprovedVisibleMeal,
     findExistingVote,
     createVote,
+    updateVoteType,
     getMealVotes,
   } = require("../models/vote.model");
   
@@ -89,44 +90,40 @@ const {
   
   
       if (alreadyVoted) {
-  
-        return res.status(409).json({
-          success: false,
-  
-          message:
-            "You already voted for this meal",
+        if (alreadyVoted.voteType === voteType) {
+          const votes = await getMealVotes(Number(mealId));
+          return res.status(200).json({
+            success: true,
+            message: "Vote unchanged",
+            data: votes,
+          });
+        }
+
+        await updateVoteType({
+          id: alreadyVoted.id,
+          voteType,
+        });
+
+        const votes = await getMealVotes(Number(mealId));
+        return res.status(200).json({
+          success: true,
+          message: "Vote updated",
+          data: votes,
         });
       }
-  
-  
-      // CREATE VOTE
+
       await createVote({
-  
-        mealId:
-          Number(mealId),
-  
+        mealId: Number(mealId),
         voteType,
-  
         ipAddress,
-  
         deviceId,
       });
-  
-  
-      // UPDATED COUNTS
-      const votes =
-        await getMealVotes(
-          Number(mealId)
-        );
-  
-  
+
+      const votes = await getMealVotes(Number(mealId));
+
       return res.status(201).json({
-  
         success: true,
-  
-        message:
-          "Vote submitted successfully",
-  
+        message: "Vote submitted successfully",
         data: votes,
       });
   

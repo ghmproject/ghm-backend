@@ -73,6 +73,13 @@ const createVote = async ({
   });
 };
 
+const updateVoteType = async ({ id, voteType }) => {
+  return await prisma.vote.update({
+    where: { id: Number(id) },
+    data: { voteType },
+  });
+};
+
 
 // =====================================
 // GET MEAL VOTES
@@ -119,5 +126,6 @@ module.exports = {
   findPublicApprovedVisibleMeal,
   findExistingVote,
   createVote,
+  updateVoteType,
   getMealVotes,
 };

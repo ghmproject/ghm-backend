@@ -313,9 +313,29 @@ const getSingleRestaurant = async (id) => {
 // =======================================
 // FILTER LISTINGS
 // =======================================
+const { getRestaurantRankingRows } = require("./rankingSystem.model");
+
+/** Navbar “Top Rated” chip — ranking vote net score. */
+const TOP_RATED_FILTER_MIN_NET_SCORE = 1;
+/** Filter feeds “Top rated” — minimum total vote events (up + down). */
+const TOP_RATED_FILTER_MIN_VOTE_COUNT = 5;
+const PRICE_VERIFIED_WINDOW_DAYS = 30;
+
+const isActiveHotDeal = (deal, now = new Date()) =>
+  deal.isActive &&
+  new Date(deal.startDateTime) <= now &&
+  new Date(deal.endDateTime) >= now;
+
 const filterListings = async ({
   cuisine,
   maxPrice,
+  topRated,
+  hotDeals,
+  priceVerified,
+  minVotes,
+  lat,
+  lng,
+  radiusKm,
 }) => {
 
   const mealFilter = {
@@ -344,6 +364,18 @@ const filterListings = async ({
     };
   }
 
+  const now = new Date();
+
+  if (hotDeals) {
+    mealFilter.hotDeals = {
+      some: {
+        isActive: true,
+        startDateTime: { lte: now },
+        endDateTime: { gte: now },
+      },
+    };
+  }
+
 
   const where = {
 
@@ -354,7 +386,7 @@ const filterListings = async ({
   };
 
 
-  return await prisma.restaurant.findMany({
+  let listings = await prisma.restaurant.findMany({
 
     where,
 
@@ -370,6 +402,86 @@ const filterListings = async ({
       },
     },
   });
+
+  if (hotDeals) {
+    listings = listings
+      .map((restaurant) => ({
+        ...restaurant,
+        meals: restaurant.meals.filter((meal) =>
+          (meal.hotDeals ?? []).some((deal) => isActiveHotDeal(deal, now)),
+        ),
+      }))
+      .filter((restaurant) => restaurant.meals.length > 0);
+  }
+
+  if (priceVerified) {
+    const cutoff = new Date(
+      Date.now() - PRICE_VERIFIED_WINDOW_DAYS * 24 * 60 * 60 * 1000,
+    );
+    listings = listings
+      .map((restaurant) => ({
+        ...restaurant,
+        meals: restaurant.meals.filter(
+          (meal) => new Date(meal.createdAt) >= cutoff,
+        ),
+      }))
+      .filter((restaurant) => restaurant.meals.length > 0);
+  }
+
+  if (!topRated) {
+    return listings;
+  }
+
+  const latNum = lat != null ? Number(lat) : null;
+  const lngNum = lng != null ? Number(lng) : null;
+  const hasCoords =
+    Number.isFinite(latNum) && Number.isFinite(lngNum);
+
+  const { rows } = await getRestaurantRankingRows({
+    suburb: null,
+    lat: hasCoords ? latNum : null,
+    lng: hasCoords ? lngNum : null,
+    radiusKm,
+  });
+
+  const minVotesNum = Number(minVotes);
+  const useVoteCountThreshold =
+    Number.isFinite(minVotesNum) && minVotesNum > 0;
+
+  const qualifyingRows = rows.filter((row) => {
+    const totalVotes = row.upvotes + row.downvotes;
+    return useVoteCountThreshold
+      ? totalVotes >= minVotesNum
+      : row.voteScore >= TOP_RATED_FILTER_MIN_NET_SCORE;
+  });
+
+  const metricsByRestaurantId = new Map(
+    qualifyingRows.map((row) => [
+      row.restaurantId,
+      {
+        voteScore: row.voteScore,
+        totalVotes: row.upvotes + row.downvotes,
+      },
+    ]),
+  );
+
+  const qualifyingIds = new Set(metricsByRestaurantId.keys());
+
+  return listings
+    .filter((restaurant) => qualifyingIds.has(restaurant.id))
+    .map((restaurant) => {
+      const metrics = metricsByRestaurantId.get(restaurant.id);
+      return {
+        ...restaurant,
+        netScore: metrics.voteScore,
+        voteCount: metrics.totalVotes,
+      };
+    })
+    .sort((a, b) =>
+      useVoteCountThreshold
+        ? b.voteCount - a.voteCount || b.netScore - a.netScore
+        : b.netScore - a.netScore,
+    );
 };
 
 

@@ -39,3 +39,4 @@ const authMiddleware = (req, res, next) => {
 };
 
 module.exports = authMiddleware;
+module.exports.getTokenFromRequest = getTokenFromRequest;

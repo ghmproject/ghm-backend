@@ -434,12 +434,28 @@ const filterListingController =
       const {
         cuisine,
         maxPrice,
+        topRated,
+        hotDeals,
+        priceVerified,
+        minVotes,
+        lat,
+        lng,
+        radiusKm,
       } = req.query;
+
+      const flag = (v) => v === true || v === "true" || v === "1";
 
       const listings =
         await filterListings({
           cuisine,
           maxPrice,
+          topRated: flag(topRated),
+          hotDeals: flag(hotDeals),
+          priceVerified: flag(priceVerified),
+          minVotes,
+          lat,
+          lng,
+          radiusKm,
         });
 
       return res.status(200).json({

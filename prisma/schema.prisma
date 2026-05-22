@@ -37,6 +37,7 @@ model User {
    communityPosts CommunityPost[]
    communityPostLikes CommunityPostLike[]
    communityPostComments CommunityPostComment[]
+  communityPostCommentLikes CommunityPostCommentLike[]
   reports Report[]
   @@map("users")
 }
@@ -213,12 +214,35 @@ model CommunityPostComment {
   userId    Int
   body      String
 
+  parentCommentId String?
+  likesCount      Int     @default(0)
+
   post      CommunityPost @relation(fields: [postId], references: [id])
   user      User          @relation(fields: [userId], references: [id])
+
+  parent    CommunityPostComment?  @relation("CommunityCommentReplies", fields: [parentCommentId], references: [id], onDelete: Cascade)
+  replies   CommunityPostComment[] @relation("CommunityCommentReplies")
+
+  likes     CommunityPostCommentLike[]
 
   createdAt DateTime @default(now())
 
   @@map("community_post_comments")
+}
+
+model CommunityPostCommentLike {
+  id        String   @id @default(uuid())
+
+  commentId String
+  userId    Int
+
+  comment   CommunityPostComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User                 @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([commentId, userId])
+  @@map("community_post_comment_likes")
 }
 
 model Comment {

@@ -3,14 +3,19 @@ const express = require("express");
 const router = express.Router();
 
 const authMiddleware = require("../middleware/auth.middleware");
+const optionalAuthMiddleware = require("../middleware/optionalAuth.middleware");
 
 const {
   createPost,
+  updatePost,
   getPosts,
   getSinglePost,
   likePost,
   getPostForComment,
   createComment,
+  likeComment,
+  updateComment,
+  removeComment,
 } = require("../controllers/community.controller");
 const {
   uploadOptionalSingleImage,
@@ -93,6 +98,52 @@ router.post("/create", authMiddleware, uploadOptionalSingleImage, createPost);
 
 /**
  * @swagger
+ * /api/community/{id}:
+ *   patch:
+ *     summary: Update a community post (author only)
+ *     tags: [Community]
+ *
+ *     security:
+ *       - bearerAuth: []
+ *
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *
+ *     requestBody:
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *               category:
+ *                 type: string
+ *               body:
+ *                 type: string
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *               clearImage:
+ *                 type: string
+ *                 description: Set to "true" to remove the post image
+ *
+ *     responses:
+ *       200:
+ *         description: Post updated successfully
+ *       403:
+ *         description: Not the post author
+ *       404:
+ *         description: Post not found
+ */
+router.patch("/:id", authMiddleware, uploadOptionalSingleImage, updatePost);
+
+/**
+ * @swagger
  * /api/community:
  *   get:
  *     summary: Get all community posts
@@ -110,7 +161,7 @@ router.post("/create", authMiddleware, uploadOptionalSingleImage, createPost);
 // GET ALL POSTS
 // ==============================
 
-router.get("/", getPosts);
+router.get("/", optionalAuthMiddleware, getPosts);
 
 /**
  * @swagger
@@ -137,7 +188,7 @@ router.get("/", getPosts);
  *       500:
  *         description: Internal server error
  */
-router.get("/comment/:postId", getPostForComment);
+router.get("/comment/:postId", optionalAuthMiddleware, getPostForComment);
 
 /**
  * @swagger
@@ -186,6 +237,10 @@ router.get("/comment/:postId", getPostForComment);
  *         description: Internal server error
  */
 router.post("/comment/:postId", authMiddleware, createComment);
+
+router.post("/comments/:commentId/like", authMiddleware, likeComment);
+router.patch("/comments/:commentId", authMiddleware, updateComment);
+router.delete("/comments/:commentId", authMiddleware, removeComment);
 
 /**
  * @swagger

@@ -9,9 +9,16 @@ const {
   createCommunityPost,
   getAllCommunityPosts,
   getCommunityPostById,
+  getLikedPostIdsForUser,
+  getAuthorEngagementForViewer,
+  sortPostsByEngagement,
+  updateCommunityPost,
   toggleLike,
   getPostWithComments,
   addPostComment,
+  toggleCommentLike,
+  updatePostComment,
+  deletePostComment,
 } = require("../models/community.model");
 
 const normalizeCategory = (value) => {
@@ -109,16 +116,136 @@ const createPost = async (req, res) => {
 };
 
 // ==============================
+// UPDATE POST
+// ==============================
+
+const updatePost = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { id } = req.params;
+    const { title, category, body, imageUrl: bodyImageUrl, clearImage } = req.body;
+
+    const hasTitle = title !== undefined && title !== null && String(title).trim() !== "";
+    const hasCategory = category !== undefined && category !== null && String(category).trim() !== "";
+    const hasBody = body !== undefined && body !== null && String(body).trim() !== "";
+    const hasFile = Boolean(req.file?.buffer);
+    const wantsClearImage =
+      clearImage === true ||
+      clearImage === "true" ||
+      clearImage === "1";
+
+    if (!hasTitle && !hasCategory && !hasBody && !hasFile && !wantsClearImage && !bodyImageUrl) {
+      return res.status(400).json({
+        success: false,
+        message: "Provide at least one field to update",
+      });
+    }
+
+    const data = {};
+
+    if (hasTitle) {
+      data.title = String(title).trim();
+    }
+
+    if (hasCategory) {
+      const normalizedCategory = normalizeCategory(category);
+      if (!normalizedCategory) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid category. Use Finds, Tips, or Price checks",
+        });
+      }
+      data.category = normalizedCategory;
+    }
+
+    if (hasBody) {
+      data.body = String(body).trim();
+    }
+
+    if (hasFile) {
+      const result = await new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { folder: "GHMProject/community" },
+          (error, uploadResult) => {
+            if (uploadResult) {
+              resolve(uploadResult);
+            } else {
+              reject(error);
+            }
+          },
+        );
+
+        streamifier.createReadStream(req.file.buffer).pipe(stream);
+      });
+
+      data.imageUrl = result.secure_url;
+    } else if (bodyImageUrl?.trim()) {
+      data.imageUrl = String(bodyImageUrl).trim();
+    } else if (wantsClearImage) {
+      data.imageUrl = null;
+    }
+
+    const post = await updateCommunityPost(id, userId, data);
+
+    if (post === "forbidden") {
+      return res.status(403).json({
+        success: false,
+        message: "You can only edit your own posts",
+      });
+    }
+
+    if (!post) {
+      return res.status(404).json({
+        success: false,
+        message: "Post not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Post updated successfully",
+      data: post,
+    });
+  } catch (error) {
+    console.log(error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to update post",
+    });
+  }
+};
+
+// ==============================
 // GET ALL POSTS
 // ==============================
 
 const getPosts = async (req, res) => {
   try {
-    const posts = await getAllCommunityPosts();
+    let posts = await getAllCommunityPosts();
+    const userId = req.user?.id;
+
+    if (userId) {
+      const engagementScores = await getAuthorEngagementForViewer(userId);
+      posts = sortPostsByEngagement(posts, engagementScores);
+    }
+
+    let likedIds = new Set();
+    if (userId) {
+      likedIds = await getLikedPostIdsForUser(
+        userId,
+        posts.map((post) => post.id),
+      );
+    }
+
+    const data = posts.map((post) => ({
+      ...post,
+      likedByMe: likedIds.has(post.id),
+    }));
 
     return res.status(200).json({
       success: true,
-      data: posts,
+      data,
     });
   } catch (error) {
     console.log(error);
@@ -199,8 +326,9 @@ const likePost = async (req, res) => {
 const getPostForComment = async (req, res) => {
   try {
     const { postId } = req.params;
+    const viewerId = req.user?.id;
 
-    const post = await getPostWithComments(postId);
+    const post = await getPostWithComments(postId, viewerId);
 
     if (!post) {
       return res.status(404).json({
@@ -231,7 +359,7 @@ const createComment = async (req, res) => {
   try {
     const userId = req.user.id;
     const { postId } = req.params;
-    const { body } = req.body;
+    const { body, parentCommentId } = req.body;
 
     if (!body || !String(body).trim()) {
       return res.status(400).json({
@@ -243,8 +371,16 @@ const createComment = async (req, res) => {
     const comment = await addPostComment(
       postId,
       userId,
-      String(body).trim()
+      String(body).trim(),
+      parentCommentId ? String(parentCommentId) : null,
     );
+
+    if (comment === "invalid_parent") {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid reply target",
+      });
+    }
 
     if (!comment) {
       return res.status(404).json({
@@ -268,11 +404,127 @@ const createComment = async (req, res) => {
   }
 };
 
+const updateComment = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { commentId } = req.params;
+    const { body } = req.body;
+
+    if (!body || !String(body).trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Comment body is required",
+      });
+    }
+
+    const comment = await updatePostComment(
+      commentId,
+      userId,
+      String(body).trim(),
+    );
+
+    if (comment === "forbidden") {
+      return res.status(403).json({
+        success: false,
+        message: "You can only edit your own comments",
+      });
+    }
+
+    if (!comment) {
+      return res.status(404).json({
+        success: false,
+        message: "Comment not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Comment updated successfully",
+      data: comment,
+    });
+  } catch (error) {
+    console.log(error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to update comment",
+    });
+  }
+};
+
+const likeComment = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { commentId } = req.params;
+
+    const result = await toggleCommentLike(commentId, userId);
+
+    if (!result) {
+      return res.status(404).json({
+        success: false,
+        message: "Comment not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      ...result,
+    });
+  } catch (error) {
+    console.log(error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to like comment",
+    });
+  }
+};
+
+const removeComment = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { commentId } = req.params;
+
+    const result = await deletePostComment(commentId, userId);
+
+    if (result === "forbidden") {
+      return res.status(403).json({
+        success: false,
+        message: "You can only delete your own comments",
+      });
+    }
+
+    if (!result) {
+      return res.status(404).json({
+        success: false,
+        message: "Comment not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Comment deleted successfully",
+      postId: result.postId,
+    });
+  } catch (error) {
+    console.log(error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to delete comment",
+    });
+  }
+};
+
 module.exports = {
   createPost,
+  updatePost,
   getPosts,
   getSinglePost,
   likePost,
   getPostForComment,
   createComment,
+  likeComment,
+  updateComment,
+  removeComment,
 };

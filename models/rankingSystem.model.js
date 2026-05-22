@@ -351,9 +351,48 @@ const getRestaurantRankingRows = async ({ suburb, lat, lng, radiusKm }) => {
   };
 };
 
+/**
+ * Popularity breakdown for one restaurant (votes + activity + engagement).
+ */
+const getRestaurantPopularityRow = async (restaurantId) => {
+  const rid = Number(restaurantId);
+  if (!Number.isFinite(rid) || rid <= 0) return null;
+
+  const meals = await prisma.meal.findMany({
+    where: {
+      restaurantId: rid,
+      ...publicApprovedMealWhere,
+    },
+    select: {
+      id: true,
+      dishName: true,
+      price: true,
+      cuisine: true,
+      restaurantId: true,
+      image: true,
+      restaurant: {
+        select: {
+          id: true,
+          name: true,
+          suburb: true,
+          latitude: true,
+          longitude: true,
+        },
+      },
+    },
+  });
+
+  if (!meals.length) return null;
+
+  const { metricsByMealId } = await attachVoteAndCommentMetrics(meals);
+  const rows = aggregateMealsByRestaurant(meals, metricsByMealId);
+  return rows[0] ?? null;
+};
+
 module.exports = {
   getSuburbRankingRows,
   getRestaurantRankingRows,
+  getRestaurantPopularityRow,
   ACTIVITY_WINDOW_DAYS,
   DEFAULT_NEAR_RADIUS_KM,
   computeScores,
