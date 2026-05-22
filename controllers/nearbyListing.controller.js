@@ -1,6 +1,7 @@
 const { getDistance } = require("geolib");
 
 const { parseCoordinates } = require("../utils/parseCoordinates");
+const { extractSuburbLabel } = require("../utils/extractSuburbLabel");
 const {
   findApprovedMealsWithRestaurantCoords,
 } = require("../models/nearbyListing.model");
@@ -17,17 +18,21 @@ function resolveRadiusMeters(radiusKmRaw) {
   return Math.min(radiusKm, MAX_RADIUS_KM_CAP) * 1000;
 }
 
-const toPublicNearbyListing = (row) => ({
-  id: row.mealId,
-  restaurantName: row.restaurantName,
-  dishName: row.dishName,
-  address: row.address,
-  latitude: row.latitude,
-  longitude: row.longitude,
-  price: row.price,
-  image: row.image ?? null,
-  isFeatured: Boolean(row.isFeatured),
-});
+const toPublicNearbyListing = (row) => {
+  const fullAddress = row.address ?? "";
+  return {
+    id: row.mealId,
+    restaurantName: row.restaurantName,
+    dishName: row.dishName,
+    address: fullAddress,
+    suburb: extractSuburbLabel(fullAddress),
+    latitude: row.latitude,
+    longitude: row.longitude,
+    price: row.price,
+    image: row.image ?? null,
+    isFeatured: Boolean(row.isFeatured),
+  };
+};
 
 /**
  * Validate coords, load approved listings with coordinates, filter by radius, sort nearest first.

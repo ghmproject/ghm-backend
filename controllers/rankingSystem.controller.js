@@ -73,14 +73,17 @@ const buildSuburbRow = (raw) => {
   };
 };
 
-const buildRestaurantRow = (raw) => ({
+const { extractSuburbLabel } = require("../utils/extractSuburbLabel");
+
+const buildRestaurantRow = (raw) => {
+  const fullAddress = raw.suburb ?? "";
+  return {
   restaurantId: raw.restaurantId,
   restaurantName: raw.restaurantName,
   dishName: raw.dishName,
   topMealId: raw.topMealId,
-  suburb: raw.suburb,
-  /** Full restaurant address (stored in DB `suburb` column). */
-  address: raw.suburb,
+  suburb: extractSuburbLabel(fullAddress),
+  address: fullAddress,
   price: raw.price,
   topMealPrice: raw.topMealPrice,
   cuisine: raw.cuisine,
@@ -119,7 +122,8 @@ const buildRestaurantRow = (raw) => ({
     distance:
       raw.distanceMeters != null ? raw.distanceMeters : Number.MAX_SAFE_INTEGER,
   },
-});
+  };
+};
 
 /**
  * GET /api/ranking/suburbs?sortBy=

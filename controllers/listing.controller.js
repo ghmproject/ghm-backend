@@ -7,10 +7,14 @@ const streamifier = require(
 );
 
 const {
-  parseCoordinates,
+  resolveSubmissionLocation,
 } = require(
-  "../utils/parseCoordinates"
+  "../utils/resolveSubmissionLocation"
 );
+const {
+  formatRestaurantForApi,
+  formatRestaurantsForApi,
+} = require("../utils/formatRestaurantLocation");
 
 const {
   findRestaurant,
@@ -78,20 +82,18 @@ const createSubmission = async (
 
 
     // ===================================
-    // LOCATION VALIDATION
+    // LOCATION (address → geocode; suburb-only → client GPS)
     // ===================================
-    const coords = parseCoordinates(
+    const coords = await resolveSubmissionLocation({
+      suburb,
       latitude,
-      longitude
-    );
+      longitude,
+    });
 
     if (!coords.ok) {
-
       return res.status(coords.status).json({
         success: false,
-
-        message:
-          coords.message,
+        message: coords.message,
       });
     }
 
@@ -317,7 +319,7 @@ if (parsedStartDate >= parsedEndDate) {
           ? "Hot deal submitted successfully"
           : "Submission sent for moderation",
 
-      restaurant,
+      restaurant: formatRestaurantForApi(restaurant),
 
       meal,
     });
@@ -354,8 +356,7 @@ const getListings = async (
 
       success: true,
 
-      data:
-        restaurants,
+      data: formatRestaurantsForApi(restaurants),
     });
 
   } catch (error) {
@@ -404,8 +405,7 @@ const getListing = async (
 
       success: true,
 
-      data:
-        restaurant,
+      data: formatRestaurantForApi(restaurant),
     });
 
   } catch (error) {
@@ -449,8 +449,7 @@ const filterListingController =
         count:
           listings.length,
 
-        data:
-          listings,
+        data: formatRestaurantsForApi(listings),
       });
 
     } catch (error) {
@@ -479,15 +478,23 @@ const getHotDealsController =
       const deals =
         await getActiveHotDeals();
 
+      const data = deals.map((deal) => ({
+        ...deal,
+        meal: deal.meal
+          ? {
+              ...deal.meal,
+              restaurant: formatRestaurantForApi(deal.meal.restaurant),
+            }
+          : deal.meal,
+      }));
+
       return res.status(200).json({
 
         success: true,
 
-        count:
-          deals.length,
+        count: data.length,
 
-        data:
-          deals,
+        data,
       });
 
     } catch (error) {
