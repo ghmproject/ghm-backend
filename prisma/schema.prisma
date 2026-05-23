@@ -276,6 +276,14 @@ model Comment {
   @@map("comments")
 }
 
+model PrivacyPolicy {
+  id        Int      @id @default(autoincrement())
+  content   String
+  updatedAt DateTime @updatedAt
+
+  @@map("privacy_policies")
+}
+
 model CommentLike {
 
   id Int @id @default(autoincrement())
