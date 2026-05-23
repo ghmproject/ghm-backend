@@ -20,6 +20,7 @@ const {
   updatePostComment,
   deletePostComment,
 } = require("../models/community.model");
+const { resolveAuthUserId } = require("../utils/resolveAuthUser");
 
 const normalizeCategory = (value) => {
   const raw = String(value).trim();
@@ -45,7 +46,13 @@ const normalizeCategory = (value) => {
 
 const createPost = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = await resolveAuthUserId(req.user);
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Sign in again to continue",
+      });
+    }
 
     const {
       title,
@@ -121,7 +128,13 @@ const createPost = async (req, res) => {
 
 const updatePost = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = await resolveAuthUserId(req.user);
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Sign in again to continue",
+      });
+    }
     const { id } = req.params;
     const { title, category, body, imageUrl: bodyImageUrl, clearImage } = req.body;
 
@@ -223,7 +236,7 @@ const updatePost = async (req, res) => {
 const getPosts = async (req, res) => {
   try {
     let posts = await getAllCommunityPosts();
-    const userId = req.user?.id;
+    const userId = req.user ? await resolveAuthUserId(req.user) : null;
 
     if (userId) {
       const engagementScores = await getAuthorEngagementForViewer(userId);
@@ -292,7 +305,13 @@ const likePost = async (req, res) => {
 
   try {
 
-    const userId = req.user.id;
+    const userId = await resolveAuthUserId(req.user);
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Sign in again to continue",
+      });
+    }
 
     const { postId } = req.params;
 
@@ -326,7 +345,7 @@ const likePost = async (req, res) => {
 const getPostForComment = async (req, res) => {
   try {
     const { postId } = req.params;
-    const viewerId = req.user?.id;
+    const viewerId = req.user ? await resolveAuthUserId(req.user) : null;
 
     const post = await getPostWithComments(postId, viewerId);
 
@@ -357,7 +376,13 @@ const getPostForComment = async (req, res) => {
 
 const createComment = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = await resolveAuthUserId(req.user);
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Sign in again to comment",
+      });
+    }
     const { postId } = req.params;
     const { body, parentCommentId } = req.body;
 
@@ -406,7 +431,13 @@ const createComment = async (req, res) => {
 
 const updateComment = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = await resolveAuthUserId(req.user);
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Sign in again to continue",
+      });
+    }
     const { commentId } = req.params;
     const { body } = req.body;
 
@@ -454,7 +485,13 @@ const updateComment = async (req, res) => {
 
 const likeComment = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = await resolveAuthUserId(req.user);
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Sign in again to continue",
+      });
+    }
     const { commentId } = req.params;
 
     const result = await toggleCommentLike(commentId, userId);
@@ -482,7 +519,13 @@ const likeComment = async (req, res) => {
 
 const removeComment = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = await resolveAuthUserId(req.user);
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Sign in again to continue",
+      });
+    }
     const { commentId } = req.params;
 
     const result = await deletePostComment(commentId, userId);
