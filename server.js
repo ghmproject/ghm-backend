@@ -22,6 +22,7 @@ const featuredRoutes = require("./routes/featured.routes");
 const rankingSystemRoutes = require("./routes/rankingSystem.routes");
 const profileRoutes = require("./routes/profile.routes");
 const privacyPolicyRoutes = require("./routes/privacyPolicy.routes");
+const mapsRoutes = require("./routes/maps.routes");
 const app = express();
 
 const corsOrigins = [
@@ -86,6 +87,7 @@ app.use("/api/admin/featured", featuredRoutes);
 app.use("/api/ranking", rankingSystemRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/privacy-policy", privacyPolicyRoutes);
+app.use("/api/maps", mapsRoutes);
 // ==========================
 // 404 Handler
 // ==========================
