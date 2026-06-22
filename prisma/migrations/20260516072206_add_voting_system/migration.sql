@@ -2,9 +2,6 @@
 CREATE TYPE "VoteType" AS ENUM ('UP', 'DOWN');
 
 -- AlterTable
-ALTER TABLE "meals" ADD COLUMN     "cuisine" TEXT;
-
--- AlterTable
 ALTER TABLE "restaurants" ALTER COLUMN "latitude" DROP NOT NULL,
 ALTER COLUMN "longitude" DROP NOT NULL;
 
